@@ -119,12 +119,15 @@ class HomeController extends Controller
                     ];
                 });
 
-            // Get assessment statistics by type for admin
+            // Get assessment statistics by type for admin (filtered by current term)
             $assessmentTypes = ['Quiz', 'Test', 'In Class Test', 'Monthly Test', 'Assignment', 'Exercise', 'Project', 'Fort Night', 'Exam', 'Vacation Exam', 'National Exam'];
             $assessmentStats = [];
 
             foreach ($assessmentTypes as $type) {
-                $assessments = Assessment::where('assessment_type', $type)->get();
+                $assessments = Assessment::where('assessment_type', $type)
+                    ->where('academic_year', $currentYear)
+                    ->where('term', $currentPeriod)
+                    ->get();
                 $totalGiven = $assessments->count();
 
                 $totalMarks = 0;
@@ -151,10 +154,13 @@ class HomeController extends Controller
                 ];
             }
 
-            // Get assessment performance by type AND gender
+            // Get assessment performance by type AND gender (filtered by current term)
             $assessmentStatsByGender = [];
             foreach ($assessmentTypes as $type) {
-                $assessments = Assessment::where('assessment_type', $type)->pluck('id');
+                $assessments = Assessment::where('assessment_type', $type)
+                    ->where('academic_year', $currentYear)
+                    ->where('term', $currentPeriod)
+                    ->pluck('id');
                 
                 // Get marks with student gender information
                 $marksByGender = DB::table('assessment_marks')
@@ -198,7 +204,7 @@ class HomeController extends Controller
                 ];
             }
 
-            // Get subject-wise assessment performance for admin
+            // Get subject-wise assessment performance for admin (filtered by current term)
             $subjectPerformanceData = [];
             $subjectAssessmentMatrix = [];
 
@@ -207,8 +213,11 @@ class HomeController extends Controller
                 $subjectObtainedMarks = 0;
                 $subjectAssessmentCount = 0;
 
-                // Get all assessments for this subject
-                $subjectAssessments = Assessment::where('subject_id', $subject->id)->get();
+                // Get all assessments for this subject (filtered by current term)
+                $subjectAssessments = Assessment::where('subject_id', $subject->id)
+                    ->where('academic_year', $currentYear)
+                    ->where('term', $currentPeriod)
+                    ->get();
 
                 // Get unique class IDs for this subject
                 $subjectClassIds = $subjectAssessments->pluck('class_id')->unique()->filter()->toArray();
@@ -235,11 +244,13 @@ class HomeController extends Controller
                     'class_ids' => $subjectClassIds
                 ];
 
-                // Build matrix: subject vs assessment types
+                // Build matrix: subject vs assessment types (filtered by current term)
                 $typeStats = [];
                 foreach ($assessmentTypes as $type) {
                     $typeAssessments = Assessment::where('subject_id', $subject->id)
                         ->where('assessment_type', $type)
+                        ->where('academic_year', $currentYear)
+                        ->where('term', $currentPeriod)
                         ->get();
 
                     $typeTotalMarks = 0;
@@ -968,6 +979,8 @@ class HomeController extends Controller
     {
         $classId = $request->get('class_id');
         $subjectId = $request->get('subject_id');
+        $year = $request->get('year');
+        $term = $request->get('term');
 
         $assessmentTypes = ['Quiz', 'Test', 'In Class Test', 'Monthly Test', 'Assignment', 'Exercise', 'Project', 'Fort Night', 'Exam', 'Vacation Exam', 'National Exam'];
         $assessmentStats = [];
@@ -981,6 +994,14 @@ class HomeController extends Controller
 
             if ($subjectId && $subjectId !== 'all') {
                 $query->where('subject_id', $subjectId);
+            }
+
+            if ($year && $year !== 'all') {
+                $query->where('academic_year', $year);
+            }
+
+            if ($term && $term !== 'all') {
+                $query->where('term', $term);
             }
 
             $assessments = $query->get();
@@ -1020,6 +1041,7 @@ class HomeController extends Controller
     public function getFilteredAssessmentStatsByGender(Request $request)
     {
         $classId = $request->get('class_id');
+        $subjectId = $request->get('subject_id');
         $year = $request->get('year');
         $term = $request->get('term');
 
@@ -1031,6 +1053,10 @@ class HomeController extends Controller
 
             if ($classId && $classId !== 'all') {
                 $query->where('class_id', $classId);
+            }
+
+            if ($subjectId && $subjectId !== 'all') {
+                $query->where('subject_id', $subjectId);
             }
 
             if ($year && $year !== 'all') {

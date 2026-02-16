@@ -100,28 +100,38 @@
 <!-- Classroom Population Chart -->
 <div class="w-full block mt-8">
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 class="text-xl font-bold text-gray-900 mb-4">Classroom Population</h3>
-        <p class="text-sm text-gray-600 mb-6">Number of students enrolled in each class</p>
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
+            <div class="mb-4 lg:mb-0">
+                <h3 class="text-xl font-bold text-gray-900 mb-1">Classroom Population</h3>
+                <p class="text-sm text-gray-600">Number of students enrolled in each class</p>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <select id="populationGenderFilter" class="block w-full sm:w-32 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="all">All Genders</option>
+                    <option value="male">Male Only</option>
+                    <option value="female">Female Only</option>
+                </select>
+            </div>
+        </div>
         <div class="bg-gray-50 rounded-lg p-4" style="height: 400px;">
             <canvas id="classroomPopulationChart"></canvas>
         </div>
-        <!-- Summary Stats -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+        <div id="populationSummaryStats" class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
             <div class="bg-blue-50 rounded-lg p-4 text-center">
                 <p class="text-sm font-medium text-blue-600">Total Classes</p>
-                <p class="text-2xl font-bold text-blue-900">{{ $classroomPopulation->count() }}</p>
+                <p id="statTotalClasses" class="text-2xl font-bold text-blue-900">{{ $classroomPopulation->count() }}</p>
             </div>
             <div class="bg-green-50 rounded-lg p-4 text-center">
                 <p class="text-sm font-medium text-green-600">Total Students</p>
-                <p class="text-2xl font-bold text-green-900">{{ $classroomPopulation->sum('count') }}</p>
+                <p id="statTotalStudents" class="text-2xl font-bold text-green-900">{{ $classroomPopulation->sum('count') }}</p>
             </div>
             <div class="bg-purple-50 rounded-lg p-4 text-center">
                 <p class="text-sm font-medium text-purple-600">Largest Class</p>
-                <p class="text-2xl font-bold text-purple-900">{{ $classroomPopulation->max('count') ?? 0 }}</p>
+                <p id="statLargestClass" class="text-2xl font-bold text-purple-900">{{ $classroomPopulation->max('count') ?? 0 }}</p>
             </div>
             <div class="bg-orange-50 rounded-lg p-4 text-center">
                 <p class="text-sm font-medium text-orange-600">Average Size</p>
-                <p class="text-2xl font-bold text-orange-900">{{ $classroomPopulation->count() > 0 ? round($classroomPopulation->avg('count'), 1) : 0 }}</p>
+                <p id="statAverageSize" class="text-2xl font-bold text-orange-900">{{ $classroomPopulation->count() > 0 ? round($classroomPopulation->avg('count'), 1) : 0 }}</p>
             </div>
         </div>
     </div>
@@ -136,25 +146,35 @@
                 <h3 class="text-xl font-bold text-gray-900 mb-1">Assessment Performance by Type</h3>
                 <p class="text-sm text-gray-600">Filter by class and subject to view specific performance</p>
             </div>
-            <div class="flex flex-col sm:flex-row gap-3">
-                <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">Class</label>
-                    <select id="assessClassFilter" class="block w-full sm:w-40 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="all">All Classes</option>
-                        @foreach($classes as $class)
-                        <option value="{{ $class->id }}">{{ $class->class_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">Subject</label>
-                    <select id="assessSubjectFilter" class="block w-full sm:w-40 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="all">All Subjects</option>
-                        @foreach($subjects as $subject)
-                        <option value="{{ $subject->id }}">{{ $subject->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
+            <div class="flex flex-col sm:flex-row gap-3 flex-wrap">
+                <select id="assessClassFilter" class="block w-full sm:w-36 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="all">All Classes</option>
+                    @foreach($classes as $class)
+                    <option value="{{ $class->id }}">{{ $class->class_name }}</option>
+                    @endforeach
+                </select>
+                <select id="assessSubjectFilter" class="block w-full sm:w-36 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="all">All Subjects</option>
+                    @foreach($subjects as $subject)
+                    <option value="{{ $subject->id }}">{{ $subject->name }}</option>
+                    @endforeach
+                </select>
+                <select id="assessYearFilter" class="block w-full sm:w-28 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="all">All Years</option>
+                    @php
+                        $assessCurrentYear = date('Y');
+                        for($y = $assessCurrentYear; $y >= $assessCurrentYear - 5; $y--) {
+                            $selected = ($y == $currentYear) ? 'selected' : '';
+                            echo "<option value=\"$y\" $selected>$y</option>";
+                        }
+                    @endphp
+                </select>
+                <select id="assessTermFilter" class="block w-full sm:w-28 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="all">All Terms</option>
+                    <option value="first" {{ $currentPeriod == 'first' ? 'selected' : '' }}>Term 1</option>
+                    <option value="second" {{ $currentPeriod == 'second' ? 'selected' : '' }}>Term 2</option>
+                    <option value="third" {{ $currentPeriod == 'third' ? 'selected' : '' }}>Term 3</option>
+                </select>
             </div>
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -215,17 +235,18 @@
                 <select id="genderYearFilter" class="block w-full sm:w-32 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="all">All Years</option>
                     @php
-                        $currentYearVal = date('Y');
-                        for($y = $currentYearVal; $y >= $currentYearVal - 5; $y--) {
-                            echo "<option value=\"$y\">$y</option>";
+                        $genderCurrentYearVal = date('Y');
+                        for($y = $genderCurrentYearVal; $y >= $genderCurrentYearVal - 5; $y--) {
+                            $selected = ($y == $currentYear) ? 'selected' : '';
+                            echo "<option value=\"$y\" $selected>$y</option>";
                         }
                     @endphp
                 </select>
                 <select id="genderTermFilter" class="block w-full sm:w-32 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="all">All Terms</option>
-                    <option value="first">Term 1</option>
-                    <option value="second">Term 2</option>
-                    <option value="third">Term 3</option>
+                    <option value="first" {{ $currentPeriod == 'first' ? 'selected' : '' }}>Term 1</option>
+                    <option value="second" {{ $currentPeriod == 'second' ? 'selected' : '' }}>Term 2</option>
+                    <option value="third" {{ $currentPeriod == 'third' ? 'selected' : '' }}>Term 3</option>
                 </select>
             </div>
         </div>
@@ -674,13 +695,17 @@
             // Filter functionality for Assessment Performance
             const classFilter = document.getElementById('assessClassFilter');
             const subjectFilter = document.getElementById('assessSubjectFilter');
+            const yearFilter = document.getElementById('assessYearFilter');
+            const termFilter = document.getElementById('assessTermFilter');
             const summaryTable = document.querySelector('#assessmentPerformanceChart').closest('.grid').querySelector('tbody');
             
             function updateAssessmentStats() {
                 const classId = classFilter.value;
                 const subjectId = subjectFilter.value;
+                const year = yearFilter.value;
+                const term = termFilter.value;
                 
-                fetch(`/api/assessment-stats?class_id=${classId}&subject_id=${subjectId}`)
+                fetch(`/api/assessment-stats?class_id=${classId}&subject_id=${subjectId}&year=${year}&term=${term}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
@@ -709,9 +734,11 @@
                     .catch(error => console.error('Error fetching assessment stats:', error));
             }
             
-            if (classFilter && subjectFilter) {
+            if (classFilter && subjectFilter && yearFilter && termFilter) {
                 classFilter.addEventListener('change', updateAssessmentStats);
                 subjectFilter.addEventListener('change', updateAssessmentStats);
+                yearFilter.addEventListener('change', updateAssessmentStats);
+                termFilter.addEventListener('change', updateAssessmentStats);
             }
         @endif
 
