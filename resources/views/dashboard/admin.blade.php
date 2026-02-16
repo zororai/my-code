@@ -199,11 +199,17 @@
                 <h3 class="text-xl font-bold text-gray-900 mb-1">Assessment Performance by Type & Gender</h3>
                 <p class="text-sm text-gray-600">Compare how male and female students perform across different assessment types</p>
             </div>
-            <div class="flex flex-col sm:flex-row gap-3">
+            <div class="flex flex-col sm:flex-row gap-3 flex-wrap">
                 <select id="genderClassFilter" class="block w-full sm:w-40 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="all">All Classes</option>
                     @foreach($classes as $class)
                         <option value="{{ $class->id }}">{{ $class->class_name }}</option>
+                    @endforeach
+                </select>
+                <select id="genderSubjectFilter" class="block w-full sm:w-40 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="all">All Subjects</option>
+                    @foreach($subjects as $subject)
+                        <option value="{{ $subject->id }}">{{ $subject->name }}</option>
                     @endforeach
                 </select>
                 <select id="genderYearFilter" class="block w-full sm:w-32 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -816,10 +822,11 @@
             
             function fetchGenderStats() {
                 const classId = document.getElementById('genderClassFilter').value;
+                const subjectId = document.getElementById('genderSubjectFilter').value;
                 const year = document.getElementById('genderYearFilter').value;
                 const term = document.getElementById('genderTermFilter').value;
                 
-                fetch(`/api/assessment-stats-by-gender?class_id=${classId}&year=${year}&term=${term}`)
+                fetch(`/api/assessment-stats-by-gender?class_id=${classId}&subject_id=${subjectId}&year=${year}&term=${term}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
@@ -837,6 +844,7 @@
                 
                 // Add filter event listeners
                 document.getElementById('genderClassFilter').addEventListener('change', fetchGenderStats);
+                document.getElementById('genderSubjectFilter').addEventListener('change', fetchGenderStats);
                 document.getElementById('genderYearFilter').addEventListener('change', fetchGenderStats);
                 document.getElementById('genderTermFilter').addEventListener('change', fetchGenderStats);
             }
