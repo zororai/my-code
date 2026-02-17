@@ -179,6 +179,8 @@ class RolePermissionController extends Controller
             'sidebar-website-images',
             'sidebar-website-text',
             'sidebar-payment-verification',
+            'sidebar-teacher-attendance',
+            'sidebar-teacher-leave',
             'sidebar-grocery-arrears',
             'sidebar-grocery-stock',
             'sidebar-financial-statements',

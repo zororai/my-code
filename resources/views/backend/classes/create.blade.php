@@ -36,109 +36,58 @@
             </div>
             
             <div class="px-8 py-6 space-y-6">
-                <!-- Class Name & Numeric Row -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Class Name <span class="text-red-500">*</span></label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                </svg>
-                            </div>
-                            <select name="class_name" id="class-name-select"
-                                class="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none bg-white @error('class_name') border-red-500 @enderror">
-                                <option value="">Select a class</option>
-                                @foreach ($classFormats as $format)
-                                    <option value="{{ $format->display_name }}" data-numeric="{{ $format->numeric_value }}" {{ old('class_name') == $format->display_name ? 'selected' : '' }}>{{ $format->display_name }}</option>
-                                @endforeach
-                            </select>
-                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                </svg>
-                            </div>
-                        </div>
-                        @error('class_name')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Class Numeric <span class="text-red-500">*</span></label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
-                                </svg>
-                            </div>
-                            <input type="number" name="class_numeric" value="{{ old('class_numeric') }}" 
-                                class="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors @error('class_numeric') border-red-500 @enderror"
-                                placeholder="Auto-filled from class name">
-                        </div>
-                        @error('class_numeric')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                        <p class="mt-1 text-xs text-gray-500">This value is auto-filled when you select a class name</p>
-                    </div>
-                </div>
-
-                <!-- Class Description -->
+                <!-- Class Name Selection -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Class Description <span class="text-red-500">*</span></label>
-                    <div class="relative">
-                        <div class="absolute top-3 left-3 pointer-events-none">
-                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
-                            </svg>
-                        </div>
-                        <textarea name="class_description" id="class-description" rows="3"
-                            class="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors @error('class_description') border-red-500 @enderror"
-                            placeholder="Auto-filled from class name">{{ old('class_description') }}</textarea>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Classes <span class="text-red-500">*</span></label>
+                    <p class="text-xs text-gray-500 mb-3">Check all the classes you want to create. Already existing classes are disabled.</p>
+                    
+                    <!-- Select All / Deselect All -->
+                    <div class="flex items-center gap-4 mb-4">
+                        <button type="button" onclick="selectAllClasses()" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                            Select All Available
+                        </button>
+                        <span class="text-gray-300">|</span>
+                        <button type="button" onclick="deselectAllClasses()" class="text-sm text-gray-600 hover:text-gray-800 font-medium">
+                            Deselect All
+                        </button>
                     </div>
-                    @error('class_description')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    
+                    @error('selected_classes')
+                        <p class="mb-2 text-sm text-red-600">{{ $message }}</p>
                     @enderror
-                </div>
-            </div>
-
-            <!-- Teacher Assignment Section -->
-            <div class="px-8 py-6 border-t border-b border-gray-100 bg-gray-50">
-                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <span class="w-8 h-8 bg-green-100 text-green-600 rounded-lg flex items-center justify-center mr-3">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                        </svg>
-                    </span>
-                    Teacher Assignment
-                </h3>
-            </div>
-            
-            <div class="px-8 py-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Assign Class Teacher <span class="text-gray-400 text-xs">(Optional)</span></label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                            </svg>
-                        </div>
-                        <select name="teacher_id" 
-                            class="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none bg-white @error('teacher_id') border-red-500 @enderror">
-                            <option value="">-- Select Teacher (Optional) --</option>
-                            @foreach ($teachers as $teacher)
-                                <option value="{{ $teacher->id }}" {{ old('teacher_id') == $teacher->id ? 'selected' : '' }}>{{ $teacher->user->name }}</option>
-                            @endforeach
-                        </select>
-                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                            </svg>
-                        </div>
+                    @error('selected_classes.*')
+                        <p class="mb-2 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                    
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-64 overflow-y-auto p-4 border border-gray-200 rounded-lg bg-gray-50">
+                        @foreach ($classFormats as $format)
+                            @php
+                                $exists = in_array($format->display_name, $existingClasses ?? []);
+                            @endphp
+                            <label class="flex items-center p-3 rounded-lg border transition-all cursor-pointer
+                                {{ $exists ? 'bg-gray-100 border-gray-200 opacity-50 cursor-not-allowed' : 'bg-white border-gray-200 hover:border-blue-400 hover:bg-blue-50' }}">
+                                <input type="checkbox" 
+                                    name="selected_classes[]" 
+                                    value="{{ $format->display_name }}" 
+                                    data-numeric="{{ $format->numeric_value }}"
+                                    class="class-checkbox w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    {{ $exists ? 'disabled' : '' }}
+                                    {{ is_array(old('selected_classes')) && in_array($format->display_name, old('selected_classes')) ? 'checked' : '' }}>
+                                <span class="ml-2 text-sm font-medium {{ $exists ? 'text-gray-400' : 'text-gray-700' }}">
+                                    {{ $format->display_name }}
+                                    @if($exists)
+                                        <span class="text-xs text-gray-400">(exists)</span>
+                                    @endif
+                                </span>
+                            </label>
+                        @endforeach
                     </div>
-                    @error('teacher_id')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                    <p class="mt-1 text-xs text-gray-500">You can assign a teacher later if none are available</p>
+                    
+                    <div class="mt-3 flex items-center justify-between">
+                        <p class="text-sm text-gray-600">
+                            <span id="selectedCount">0</span> class(es) selected
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -151,7 +100,7 @@
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                     </svg>
-                    Create Class
+                    Create Classes
                 </button>
             </div>
         </form>
@@ -159,22 +108,27 @@
 </div>
 
 <script>
-    document.getElementById('class-name-select').addEventListener('change', function() {
-        var selectedOption = this.options[this.selectedIndex];
-        var numericValue = selectedOption.getAttribute('data-numeric');
-        var className = selectedOption.value;
-        
-        if (numericValue) {
-            document.querySelector('input[name="class_numeric"]').value = numericValue;
-        }
-        
-        // Auto-fill class description
-        if (className) {
-            var description = 'This is the ' + className + ' classroom for the current academic year.';
-            document.getElementById('class-description').value = description;
-        } else {
-            document.getElementById('class-description').value = '';
-        }
+    function updateSelectedCount() {
+        const checkboxes = document.querySelectorAll('.class-checkbox:checked:not(:disabled)');
+        document.getElementById('selectedCount').textContent = checkboxes.length;
+    }
+    
+    function selectAllClasses() {
+        document.querySelectorAll('.class-checkbox:not(:disabled)').forEach(cb => cb.checked = true);
+        updateSelectedCount();
+    }
+    
+    function deselectAllClasses() {
+        document.querySelectorAll('.class-checkbox:not(:disabled)').forEach(cb => cb.checked = false);
+        updateSelectedCount();
+    }
+    
+    // Update count on checkbox change
+    document.querySelectorAll('.class-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateSelectedCount);
     });
+    
+    // Initial count
+    updateSelectedCount();
 </script>
 @endsection

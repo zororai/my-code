@@ -40,8 +40,9 @@ class GradeController extends Controller
             ->latest()
             ->get();
         $classFormats = ClassFormat::active()->ordered()->get();
+        $existingClasses = Grade::pluck('class_name')->toArray();
         
-        return view('backend.classes.create', compact('teachers', 'classFormats'));
+        return view('backend.classes.create', compact('teachers', 'classFormats', 'existingClasses'));
     }
 
     /**
@@ -53,20 +54,31 @@ class GradeController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'class_name'        => 'required|string|max:255|unique:grades',
-            'class_numeric'     => 'required|numeric',
-            'teacher_id'        => 'nullable|numeric',
-            'class_description' => 'required|string|max:255'
+            'selected_classes'   => 'required|array|min:1',
+            'selected_classes.*' => 'required|string|max:255|unique:grades,class_name',
+        ], [
+            'selected_classes.required' => 'Please select at least one class to create.',
+            'selected_classes.min'      => 'Please select at least one class to create.',
+            'selected_classes.*.unique' => 'The class ":input" already exists.',
         ]);
 
-        Grade::create([
-            'class_name'        => $request->class_name,
-            'class_numeric'     => $request->class_numeric,
-            'teacher_id'        => $request->teacher_id ?: null,
-            'class_description' => $request->class_description
-        ]);
+        $classFormats = ClassFormat::active()->get()->keyBy('display_name');
+        $createdCount = 0;
 
-        return redirect()->route('classes.index');
+        foreach ($request->selected_classes as $className) {
+            $format = $classFormats->get($className);
+            $numericValue = $format ? $format->numeric_value : 0;
+            
+            Grade::create([
+                'class_name'        => $className,
+                'class_numeric'     => $numericValue,
+                'teacher_id'        => null,
+                'class_description' => 'This is the ' . $className . ' classroom for the current academic year.'
+            ]);
+            $createdCount++;
+        }
+
+        return redirect()->route('classes.index')->with('success', $createdCount . ' class(es) created successfully.');
     }
 
     /**
