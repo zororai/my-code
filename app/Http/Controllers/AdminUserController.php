@@ -69,6 +69,7 @@ class AdminUserController extends Controller
             'password' => Hash::make($defaultPassword),
             'phone' => $request->phone,
             'must_change_password' => true,
+            'is_active' => true,
         ]);
 
         $user->assignRole($request->role);

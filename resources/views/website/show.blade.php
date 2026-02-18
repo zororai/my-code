@@ -31,6 +31,11 @@
     <link rel="stylesheet" href="{{ asset('css/responsive.css') }}?v={{ time() }}" />
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}?v={{ time() }}" />
+
+    @php
+        $siteLogo = \App\WebsiteSetting::get('site_logo', 'images/logo.png');
+        $footerLogo = \App\WebsiteSetting::get('footer_logo', 'images/logo.png');
+    @endphp
     
     <!-- Navigation Spacing Fix -->
     <style>

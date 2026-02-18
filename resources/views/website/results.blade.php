@@ -36,6 +36,7 @@
         $secondaryColor = \App\WebsiteSetting::get('secondary_color', '#1a365d');
         $footerBgColor = \App\WebsiteSetting::get('footer_bg_color', '#1a202c');
         $siteLogo = \App\WebsiteSetting::get('site_logo', 'images/logo.png');
+        $footerLogo = \App\WebsiteSetting::get('footer_logo', 'images/logo.png');
     @endphp
     <style>
         :root { --primary-color: {{ $primaryColor }}; --secondary-color: {{ $secondaryColor }}; --footer-bg-color: {{ $footerBgColor }}; }

@@ -35,6 +35,7 @@
     <!-- Navigation Spacing Fix -->
     @php
         $siteLogo = \App\WebsiteSetting::get('site_logo', 'images/logo.png');
+        $footerLogo = \App\WebsiteSetting::get('footer_logo', 'images/logo.png');
     @endphp
     <style>
         .navbar-nav.equal-spacing {
