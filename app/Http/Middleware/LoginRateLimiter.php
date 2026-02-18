@@ -8,9 +8,9 @@ use App\LoginLockout;
 
 class LoginRateLimiter
 {
-    // Rate limits
-    const MAX_ATTEMPTS_PER_IP_PER_MINUTE = 5;
-    const MAX_ATTEMPTS_PER_ACCOUNT_PER_HOUR = 10;
+    // Rate limits - more lenient for school environments
+    const MAX_ATTEMPTS_PER_IP_PER_MINUTE = 30;  // Higher for shared school IPs
+    const MAX_ATTEMPTS_PER_ACCOUNT_PER_HOUR = 15; // More forgiving for students
 
     public function handle($request, Closure $next)
     {
@@ -39,7 +39,7 @@ class LoginRateLimiter
                 return $this->rateLimitResponse($request);
             }
 
-            // Check account rate limit (10 per hour)
+            // Check account rate limit (15 per hour)
             if ($email) {
                 $accountAttempts = LoginAttempt::getRecentFailedByEmail($email, 1);
                 if ($accountAttempts >= self::MAX_ATTEMPTS_PER_ACCOUNT_PER_HOUR) {

@@ -173,7 +173,13 @@ class LoginController extends Controller
             return true;
         }
 
-        // If email login fails, try to find user by phone number (for teachers)
+        // Try to find user by phone number directly in users table (for admin users and others)
+        $user = User::where('phone', $login)->first();
+        if ($user && $user->is_active && Auth::attempt(['email' => $user->email, 'password' => $password, 'is_active' => true])) {
+            return true;
+        }
+
+        // If direct phone login fails, try to find user by phone number (for teachers)
         $teacher = Teacher::where('phone', $login)->first();
         if ($teacher) {
             $user = User::find($teacher->user_id);

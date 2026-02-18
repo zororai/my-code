@@ -729,6 +729,11 @@ class HomeController extends Controller
             $subjects = Subject::latest()->get();
             $classes = Grade::latest()->get();
 
+            // Get current term
+            $currentTerm = ResultsStatus::latest()->first();
+            $currentYear = $currentTerm ? $currentTerm->year : date('Y');
+            $currentPeriod = $currentTerm ? $currentTerm->result_period : 'first';
+
             // Get pass/fail results by gender
             $resultsByGender = DB::table('results')
                 ->join('students', 'results.student_id', '=', 'students.id')
@@ -881,7 +886,7 @@ class HomeController extends Controller
                 ];
             }
 
-            return view('home', compact('parents','teachers','students','subjects','classes','genderStats','classroomPopulation','assessmentStats','subjectPerformanceData','subjectAssessmentMatrix','assessmentTypes'));
+            return view('home', compact('parents','teachers','students','subjects','classes','genderStats','classroomPopulation','assessmentStats','subjectPerformanceData','subjectAssessmentMatrix','assessmentTypes','currentYear','currentPeriod'));
         }
 
     }
