@@ -125,8 +125,14 @@ class HomeController extends Controller
 
             foreach ($assessmentTypes as $type) {
                 $assessments = Assessment::where('assessment_type', $type)
-                    ->where('academic_year', $currentYear)
-                    ->where('term', $currentPeriod)
+                    ->where(function($q) use ($currentYear) {
+                        $q->where('academic_year', $currentYear)
+                          ->orWhereNull('academic_year');
+                    })
+                    ->where(function($q) use ($currentPeriod) {
+                        $q->where('term', $currentPeriod)
+                          ->orWhereNull('term');
+                    })
                     ->get();
                 $totalGiven = $assessments->count();
 
@@ -158,8 +164,14 @@ class HomeController extends Controller
             $assessmentStatsByGender = [];
             foreach ($assessmentTypes as $type) {
                 $assessments = Assessment::where('assessment_type', $type)
-                    ->where('academic_year', $currentYear)
-                    ->where('term', $currentPeriod)
+                    ->where(function($q) use ($currentYear) {
+                        $q->where('academic_year', $currentYear)
+                          ->orWhereNull('academic_year');
+                    })
+                    ->where(function($q) use ($currentPeriod) {
+                        $q->where('term', $currentPeriod)
+                          ->orWhereNull('term');
+                    })
                     ->pluck('id');
                 
                 // Get marks with student gender information
@@ -215,8 +227,14 @@ class HomeController extends Controller
 
                 // Get all assessments for this subject (filtered by current term)
                 $subjectAssessments = Assessment::where('subject_id', $subject->id)
-                    ->where('academic_year', $currentYear)
-                    ->where('term', $currentPeriod)
+                    ->where(function($q) use ($currentYear) {
+                        $q->where('academic_year', $currentYear)
+                          ->orWhereNull('academic_year');
+                    })
+                    ->where(function($q) use ($currentPeriod) {
+                        $q->where('term', $currentPeriod)
+                          ->orWhereNull('term');
+                    })
                     ->get();
 
                 // Get unique class IDs for this subject
@@ -249,8 +267,14 @@ class HomeController extends Controller
                 foreach ($assessmentTypes as $type) {
                     $typeAssessments = Assessment::where('subject_id', $subject->id)
                         ->where('assessment_type', $type)
-                        ->where('academic_year', $currentYear)
-                        ->where('term', $currentPeriod)
+                        ->where(function($q) use ($currentYear) {
+                            $q->where('academic_year', $currentYear)
+                              ->orWhereNull('academic_year');
+                        })
+                        ->where(function($q) use ($currentPeriod) {
+                            $q->where('term', $currentPeriod)
+                              ->orWhereNull('term');
+                        })
                         ->get();
 
                     $typeTotalMarks = 0;
@@ -284,7 +308,38 @@ class HomeController extends Controller
                 ];
             }
 
-            return view('home', compact('parents','teachers','students','subjects','classes','genderStats','classroomPopulation','assessmentStats','assessmentStatsByGender','subjectPerformanceData','subjectAssessmentMatrix','assessmentTypes','availableTerms','currentYear','currentPeriod'));
+            // Group subjects by class for the Subject Performance Cards (include all classes)
+            $subjectsByClass = [];
+            foreach ($classes as $class) {
+                // Get all subjects assigned to this class
+                $classAllSubjects = $class->subjects;
+                $totalSubjectsInClass = $classAllSubjects->count();
+                
+                // Find subjects with assessments
+                $classSubjectsWithAssessments = [];
+                foreach ($subjectAssessmentMatrix as $subjectData) {
+                    if (in_array($class->id, $subjectData['class_ids'])) {
+                        $classSubjectsWithAssessments[] = $subjectData;
+                    }
+                }
+                $subjectsWithAssessmentsCount = count($classSubjectsWithAssessments);
+                
+                // Calculate assessment coverage percentage
+                $assessmentCoverage = $totalSubjectsInClass > 0 
+                    ? round(($subjectsWithAssessmentsCount / $totalSubjectsInClass) * 100) 
+                    : 0;
+                
+                $subjectsByClass[] = [
+                    'class_id' => $class->id,
+                    'class_name' => $class->class_name,
+                    'subjects' => $classSubjectsWithAssessments,
+                    'total_subjects' => $totalSubjectsInClass,
+                    'subjects_with_assessments' => $subjectsWithAssessmentsCount,
+                    'assessment_coverage' => $assessmentCoverage
+                ];
+            }
+
+            return view('home', compact('parents','teachers','students','subjects','classes','genderStats','classroomPopulation','assessmentStats','assessmentStatsByGender','subjectPerformanceData','subjectAssessmentMatrix','subjectsByClass','assessmentTypes','availableTerms','currentYear','currentPeriod'));
 
         } elseif ($user->hasRole('Teacher')) {
 
@@ -997,11 +1052,17 @@ class HomeController extends Controller
             }
 
             if ($year && $year !== 'all') {
-                $query->where('academic_year', $year);
+                $query->where(function($q) use ($year) {
+                    $q->where('academic_year', $year)
+                      ->orWhereNull('academic_year');
+                });
             }
 
             if ($term && $term !== 'all') {
-                $query->where('term', $term);
+                $query->where(function($q) use ($term) {
+                    $q->where('term', $term)
+                      ->orWhereNull('term');
+                });
             }
 
             $assessments = $query->get();
@@ -1060,11 +1121,17 @@ class HomeController extends Controller
             }
 
             if ($year && $year !== 'all') {
-                $query->where('academic_year', $year);
+                $query->where(function($q) use ($year) {
+                    $q->where('academic_year', $year)
+                      ->orWhereNull('academic_year');
+                });
             }
 
             if ($term && $term !== 'all') {
-                $query->where('term', $term);
+                $query->where(function($q) use ($term) {
+                    $q->where('term', $term)
+                      ->orWhereNull('term');
+                });
             }
 
             $assessmentIds = $query->pluck('id');
@@ -1147,5 +1214,107 @@ class HomeController extends Controller
         ]);
 
         return redirect()->route('home')->with('success', 'Password changed successfully!');
+    }
+
+    /**
+     * Show subject performance for a specific class.
+     */
+    public function classSubjects($id)
+    {
+        $class = Grade::with('subjects')->findOrFail($id);
+        $classSubjects = $class->subjects()->orderBy('name')->get();
+        
+        $currentTerm = ResultsStatus::latest()->first();
+        $currentYear = $currentTerm ? $currentTerm->year : date('Y');
+        $currentPeriod = $currentTerm ? $currentTerm->result_period : 'first';
+        
+        $assessmentTypes = ['Quiz', 'Test', 'In Class Test', 'Monthly Test', 'Assignment', 'Exercise', 'Project', 'Fort Night', 'Exam', 'Vacation Exam', 'National Exam'];
+        
+        $subjectPerformanceData = [];
+        $totalSubjects = $classSubjects->count();
+        $subjectsWithAssessments = 0;
+        
+        foreach ($classSubjects as $subject) {
+            $subjectAssessments = Assessment::where('subject_id', $subject->id)
+                ->where('class_id', $class->id)
+                ->where(function($q) use ($currentYear) {
+                    $q->where('academic_year', $currentYear)
+                      ->orWhereNull('academic_year');
+                })
+                ->where(function($q) use ($currentPeriod) {
+                    $q->where('term', $currentPeriod)
+                      ->orWhereNull('term');
+                })
+                ->get();
+            
+            $hasAssessments = $subjectAssessments->count() > 0;
+            if ($hasAssessments) {
+                $subjectsWithAssessments++;
+            }
+            
+            $subjectTotalMarks = 0;
+            $subjectObtainedMarks = 0;
+            
+            foreach ($subjectAssessments as $assessment) {
+                $marks = AssessmentMark::where('assessment_id', $assessment->id)->get();
+                foreach ($marks as $mark) {
+                    if ($mark->mark !== null && $mark->total_marks > 0) {
+                        $subjectTotalMarks += $mark->total_marks;
+                        $subjectObtainedMarks += $mark->mark;
+                    }
+                }
+            }
+            
+            $subjectPerformance = $subjectTotalMarks > 0 ? round(($subjectObtainedMarks / $subjectTotalMarks) * 100, 1) : 0;
+            
+            $typeStats = [];
+            foreach ($assessmentTypes as $type) {
+                $typeAssessments = Assessment::where('subject_id', $subject->id)
+                    ->where('class_id', $class->id)
+                    ->where('assessment_type', $type)
+                    ->where(function($q) use ($currentYear) {
+                        $q->where('academic_year', $currentYear)
+                          ->orWhereNull('academic_year');
+                    })
+                    ->where(function($q) use ($currentPeriod) {
+                        $q->where('term', $currentPeriod)
+                          ->orWhereNull('term');
+                    })
+                    ->get();
+                
+                $typeTotalMarks = 0;
+                $typeObtainedMarks = 0;
+                
+                foreach ($typeAssessments as $assessment) {
+                    $marks = AssessmentMark::where('assessment_id', $assessment->id)->get();
+                    foreach ($marks as $mark) {
+                        if ($mark->mark !== null && $mark->total_marks > 0) {
+                            $typeTotalMarks += $mark->total_marks;
+                            $typeObtainedMarks += $mark->mark;
+                        }
+                    }
+                }
+                
+                $typePerformance = $typeTotalMarks > 0 ? round(($typeObtainedMarks / $typeTotalMarks) * 100, 1) : 0;
+                
+                $typeStats[$type] = [
+                    'given' => $typeAssessments->count(),
+                    'performance' => $typePerformance
+                ];
+            }
+            
+            $subjectPerformanceData[] = [
+                'subject' => $subject->name,
+                'subject_id' => $subject->id,
+                'assessments' => $subjectAssessments->count(),
+                'overall_performance' => $subjectPerformance,
+                'types' => $typeStats,
+                'has_assessments' => $hasAssessments
+            ];
+        }
+        
+        $assessmentCoverage = $totalSubjects > 0 ? round(($subjectsWithAssessments / $totalSubjects) * 100) : 0;
+        
+        return view('class_subjects', compact('class', 'subjectPerformanceData', 'assessmentTypes', 'currentYear', 'currentPeriod', 'totalSubjects', 'subjectsWithAssessments', 'assessmentCoverage'));
     }
 }

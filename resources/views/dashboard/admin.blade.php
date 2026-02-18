@@ -443,95 +443,34 @@
 </div>
 @endif
 
-<!-- Expandable Subject Cards with Class Filter -->
-@if(isset($subjectAssessmentMatrix) && count($subjectAssessmentMatrix) > 0)
-<div class="w-full block mt-8" x-data="{ selectedClass: 'all', showAll: false }">
+<!-- Subject Performance Cards Grouped by Class -->
+@if(isset($subjectsByClass) && count($subjectsByClass) > 0)
+<div class="w-full block mt-8">
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-            <div>
-                <h3 class="text-xl font-bold text-gray-900 mb-1">Subject Performance Cards</h3>
-                <p class="text-sm text-gray-600">Click on a subject to expand and view detailed assessment breakdown</p>
-            </div>
-            <div class="mt-4 sm:mt-0">
-                <label class="block text-xs font-medium text-gray-500 mb-1">Filter by Class</label>
-                <select x-model="selectedClass" class="block w-full sm:w-48 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="all">All Classes</option>
-                    @foreach($classes as $class)
-                    <option value="{{ $class->id }}">{{ $class->class_name }}</option>
-                    @endforeach
-                </select>
-            </div>
+        <div class="mb-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-1">Subject Performance by Class</h3>
+            <p class="text-sm text-gray-600">Click on a class to view subject performance breakdown.</p>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            @foreach($subjectAssessmentMatrix as $index => $subjectData)
-            <div x-data="{ expanded: false }" 
-                 x-show="(showAll || {{ $index }} < 6) && (selectedClass === 'all' || {{ json_encode($subjectData['class_ids'] ?? []) }}.includes(parseInt(selectedClass)))"
-                 class="border rounded-xl overflow-hidden transition-all duration-300 {{ $subjectData['overall_performance'] >= 50 ? 'border-green-200' : ($subjectData['overall_performance'] > 0 ? 'border-red-200' : 'border-gray-200') }}">
-                <div @click="expanded = !expanded" class="cursor-pointer p-4 {{ $subjectData['overall_performance'] >= 50 ? 'bg-green-50 hover:bg-green-100' : ($subjectData['overall_performance'] > 0 ? 'bg-red-50 hover:bg-red-100' : 'bg-gray-50 hover:bg-gray-100') }} transition-colors">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-12 h-12 rounded-lg flex items-center justify-center {{ $subjectData['overall_performance'] >= 50 ? 'bg-green-500' : ($subjectData['overall_performance'] > 0 ? 'bg-red-500' : 'bg-gray-400') }}">
-                                <span class="text-white font-bold text-lg">{{ substr($subjectData['subject'], 0, 2) }}</span>
-                            </div>
-                            <div>
-                                <h4 class="font-semibold text-gray-800">{{ $subjectData['subject'] }}</h4>
-                                <p class="text-xs text-gray-500">Click to expand</p>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-2xl font-bold {{ $subjectData['overall_performance'] >= 50 ? 'text-green-600' : ($subjectData['overall_performance'] > 0 ? 'text-red-600' : 'text-gray-400') }}">
-                                {{ $subjectData['overall_performance'] > 0 ? $subjectData['overall_performance'] . '%' : '--' }}
-                            </p>
-                            <p class="text-xs text-gray-500">Overall</p>
-                        </div>
-                    </div>
-                    <div class="flex justify-center mt-2">
-                        <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" :class="{ 'rotate-180': expanded }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            @foreach($subjectsByClass as $classIndex => $classData)
+            <a href="{{ route('class.subjects', $classData['class_id']) }}" class="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-lg hover:border-blue-300 transition-all block">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="w-12 h-12 rounded-xl {{ $classData['assessment_coverage'] == 100 ? 'bg-green-500' : ($classData['assessment_coverage'] >= 50 ? 'bg-blue-500' : ($classData['assessment_coverage'] > 0 ? 'bg-yellow-500' : 'bg-gray-400')) }} flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                         </svg>
                     </div>
+                    <span class="text-lg font-bold {{ $classData['assessment_coverage'] == 100 ? 'text-green-600' : ($classData['assessment_coverage'] >= 50 ? 'text-blue-600' : ($classData['assessment_coverage'] > 0 ? 'text-yellow-600' : 'text-gray-400')) }}">{{ $classData['assessment_coverage'] }}%</span>
                 </div>
-                <div x-show="expanded" x-collapse class="bg-white border-t p-4">
-                    <h5 class="text-sm font-semibold text-gray-700 mb-3">Assessment Type Breakdown</h5>
-                    <div class="space-y-2">
-                        @foreach($assessmentTypes as $type)
-                        @php $typeData = $subjectData['types'][$type] ?? ['given' => 0, 'performance' => 0]; @endphp
-                        <div class="flex items-center justify-between py-1 border-b border-gray-100 last:border-0">
-                            <div class="flex items-center space-x-2">
-                                <span class="text-sm text-gray-600">{{ $type }}</span>
-                                @if($typeData['given'] > 0)
-                                <span class="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{{ $typeData['given'] }}</span>
-                                @endif
-                            </div>
-                            <div>
-                                @if($typeData['given'] > 0)
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-16 bg-gray-200 rounded-full h-2">
-                                        <div class="h-2 rounded-full {{ $typeData['performance'] >= 50 ? 'bg-green-500' : 'bg-red-500' }}" style="width: {{ min($typeData['performance'], 100) }}%"></div>
-                                    </div>
-                                    <span class="text-sm font-medium {{ $typeData['performance'] >= 50 ? 'text-green-600' : 'text-red-600' }}">{{ $typeData['performance'] }}%</span>
-                                </div>
-                                @else
-                                <span class="text-sm text-gray-300">--</span>
-                                @endif
-                            </div>
-                        </div>
-                        @endforeach
-                    </div>
+                <h4 class="font-bold text-gray-900 text-base">{{ $classData['class_name'] }}</h4>
+                <p class="text-sm text-gray-500">{{ $classData['subjects_with_assessments'] }}/{{ $classData['total_subjects'] }} subjects with assessments</p>
+                <div class="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+                    <div class="h-1.5 rounded-full {{ $classData['assessment_coverage'] == 100 ? 'bg-green-500' : ($classData['assessment_coverage'] >= 50 ? 'bg-blue-500' : ($classData['assessment_coverage'] > 0 ? 'bg-yellow-500' : 'bg-gray-400')) }}" style="width: {{ $classData['assessment_coverage'] }}%"></div>
                 </div>
-            </div>
+            </a>
             @endforeach
         </div>
-        @if(count($subjectAssessmentMatrix) > 6)
-        <div class="mt-6 text-center">
-            <button @click="showAll = !showAll" class="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
-                <span x-text="showAll ? 'Show Less' : 'Show More ({{ count($subjectAssessmentMatrix) - 6 }} more)'"></span>
-                <svg class="w-4 h-4 ml-2 transition-transform duration-300" :class="{ 'rotate-180': showAll }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                </svg>
-            </button>
-        </div>
-        @endif
     </div>
 </div>
 @endif

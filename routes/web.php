@@ -62,6 +62,7 @@ Route::get('/image/{filename}', 'ImageController@showImage')->name('image.show')
 
 
 Route::get('/home', 'HomeController@index')->name('home');
+Route::get('/class/{id}/subjects', 'HomeController@classSubjects')->name('class.subjects');
 Route::get('/api/assessment-stats', 'HomeController@getFilteredAssessmentStats')->name('api.assessment.stats');
 Route::get('/api/gender-stats', 'HomeController@getFilteredGenderStats')->name('api.gender.stats');
 Route::get('/api/assessment-stats-by-gender', 'HomeController@getFilteredAssessmentStatsByGender')->name('api.assessment.stats.by.gender');
