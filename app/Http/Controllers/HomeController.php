@@ -1221,8 +1221,8 @@ class HomeController extends Controller
      */
     public function classSubjects($id)
     {
-        $class = Grade::with('subjects')->findOrFail($id);
-        $classSubjects = $class->subjects()->orderBy('name')->get();
+        $class = Grade::with('subjects.teacher.user')->findOrFail($id);
+        $classSubjects = $class->subjects()->with('teacher.user')->orderBy('name')->get();
         
         $currentTerm = ResultsStatus::latest()->first();
         $currentYear = $currentTerm ? $currentTerm->year : date('Y');
@@ -1309,7 +1309,8 @@ class HomeController extends Controller
                 'assessments' => $subjectAssessments->count(),
                 'overall_performance' => $subjectPerformance,
                 'types' => $typeStats,
-                'has_assessments' => $hasAssessments
+                'has_assessments' => $hasAssessments,
+                'teacher_name' => $subject->teacher && $subject->teacher->user ? $subject->teacher->user->name : null
             ];
         }
         
