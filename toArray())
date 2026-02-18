@@ -4,18 +4,18 @@
   PHP Parse error: Syntax error, unexpected ';' on line 1
 
   at C:\Users\Mazarura\Documents\GitHub\roshs\student_portal_roshs\vendor\psy\psysh\src\Exception\ParseErrorException.php:44
-    40|      * @param \PhpParser\Error $e
-    41|      */
-    42|     public static function fromParseError(\PhpParser\Error $e): self
-    43|     {
-  > 44|         return new self($e->getRawMessage(), $e->getAttributes());
-    45|     }
-    46| }
-    47|
+     40▕      * @param \PhpParser\Error $e
+     41▕      */
+     42▕     public static function fromParseError(\PhpParser\Error $e): self
+     43▕     {
+  ➜  44▕         return new self($e->getRawMessage(), $e->getAttributes());
+     45▕     }
+     46▕ }
+     47▕
 
   1   C:\Users\Mazarura\Documents\GitHub\roshs\student_portal_roshs\vendor\psy\psysh\src\CodeCleaner.php:488
       Psy\Exception\ParseErrorException::fromParseError(Object(PhpParser\Error))
 
   2   C:\Users\Mazarura\Documents\GitHub\roshs\student_portal_roshs\vendor\psy\psysh\src\CodeCleaner.php:269
-      Psy\CodeCleaner::parse("<?php print_r(App\Grade::select('id','class_name','class_numeric')-;
+      Psy\CodeCleaner::parse("<?php print_r(\App\User::latest()-;
 ")
