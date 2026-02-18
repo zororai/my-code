@@ -5,6 +5,8 @@ namespace App\Http\Middleware;
 use Closure;
 use App\LoginAttempt;
 use App\LoginLockout;
+use App\User;
+use App\Helpers\SmsHelper;
 
 class LoginRateLimiter
 {
@@ -46,6 +48,10 @@ class LoginRateLimiter
                     $lockoutMinutes = LoginLockout::getProgressiveLockoutMinutes($accountAttempts);
                     LoginLockout::lockAccount($email, $lockoutMinutes, $accountAttempts, 'Too many failed attempts');
                     $this->logSecurityEvent($ip, $email, 'Account rate limit exceeded');
+                    
+                    // Send SMS alert to all admins
+                    $this->notifyAdminsViaSms($email, $ip, $accountAttempts);
+                    
                     return $this->rateLimitResponse($request);
                 }
             }
@@ -108,5 +114,43 @@ class LoginRateLimiter
             'reason' => $reason,
             'timestamp' => now()->toIso8601String(),
         ]);
+    }
+
+    /**
+     * Send SMS notification to all admin users when account rate limit is exceeded.
+     */
+    protected function notifyAdminsViaSms($email, $ip, $attemptCount)
+    {
+        try {
+            // Get all admin users with phone numbers
+            $admins = User::role('Admin')->whereNotNull('phone')->where('phone', '!=', '')->get();
+            
+            if ($admins->isEmpty()) {
+                \Log::info('No admin users with phone numbers to notify about rate limit');
+                return;
+            }
+
+            $message = "SECURITY ALERT: Account {$email} has been locked after {$attemptCount} failed login attempts from IP {$ip}. Time: " . now()->format('Y-m-d H:i:s');
+
+            foreach ($admins as $admin) {
+                $phone = $admin->phone;
+                
+                // Format phone number
+                $phone = preg_replace('/\s+/', '', $phone);
+                if (!preg_match('/^\+/', $phone)) {
+                    $phone = '+263' . ltrim($phone, '0');
+                }
+
+                $result = SmsHelper::sendSms($phone, $message);
+                
+                if ($result['success']) {
+                    \Log::info('Security alert SMS sent to admin', ['admin' => $admin->name, 'phone' => $phone]);
+                } else {
+                    \Log::warning('Failed to send security alert SMS to admin', ['admin' => $admin->name, 'error' => $result['message'] ?? 'Unknown']);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error sending admin security alert SMS: ' . $e->getMessage());
+        }
     }
 }
