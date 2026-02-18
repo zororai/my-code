@@ -626,6 +626,88 @@ class FinanceController extends Controller
         // Get classes for filter
         $classes = \App\Grade::orderBy('class_name')->get();
         
+        // STUDENT-CENTRIC APPROACH: Get all students with their arrears
+        $studentsQuery = \App\Student::with(['user', 'class', 'parents.user', 'payments.termFee.feeType', 'payments.resultsStatus']);
+        
+        // Apply filters
+        if ($request->has('class_id') && $request->class_id != '') {
+            $studentsQuery->where('class_id', $request->class_id);
+        }
+        if ($request->has('student_type') && $request->student_type != '') {
+            $studentsQuery->where('student_type', $request->student_type);
+        }
+        
+        $allStudents = $studentsQuery->get();
+        
+        // Calculate arrears for each student
+        $studentsWithArrears = $allStudents->map(function($student) use ($allTerms, $currentTerm) {
+            $studentType = $student->student_type ?? 'day';
+            $curriculumType = $student->curriculum_type ?? 'zimsec';
+            $scholarshipPercentage = floatval($student->scholarship_percentage ?? 0);
+            $studentCreatedAt = $student->created_at;
+            
+            $totalFees = 0;
+            $balanceBf = 0;
+            $currentTermFees = 0;
+            $arrearsBreakdown = [];
+            
+            foreach ($allTerms as $term) {
+                // Skip terms before student was enrolled
+                if ($studentCreatedAt && $term->created_at < $studentCreatedAt) {
+                    continue;
+                }
+                
+                // Get base fee - first try fee structures, then fallback to legacy fields
+                $baseFee = $this->getStudentTermFee($student, $term);
+                
+                // Apply scholarship discount
+                if ($scholarshipPercentage > 0 && $scholarshipPercentage <= 100) {
+                    $baseFee = $baseFee - ($baseFee * ($scholarshipPercentage / 100));
+                }
+                
+                $totalFees += $baseFee;
+                
+                // Track current term vs previous terms
+                if ($currentTerm && $term->id === $currentTerm->id) {
+                    $currentTermFees += $baseFee;
+                } else if (!$currentTerm || $term->id < $currentTerm->id) {
+                    $balanceBf += $baseFee;
+                }
+                
+                // Calculate term-specific arrears
+                $termPaid = floatval(\App\StudentPayment::where('student_id', $student->id)
+                    ->where('results_status_id', $term->id)
+                    ->sum('amount_paid'));
+                $termArrears = $baseFee - $termPaid;
+                
+                if ($termArrears > 0) {
+                    $arrearsBreakdown[] = [
+                        'term' => ucfirst($term->result_period) . ' ' . $term->year,
+                        'term_id' => $term->id,
+                        'fees' => $baseFee,
+                        'paid' => $termPaid,
+                        'arrears' => $termArrears
+                    ];
+                }
+            }
+            
+            // Calculate total paid
+            $totalPaid = floatval(\App\StudentPayment::where('student_id', $student->id)->sum('amount_paid'));
+            $arrears = $totalFees - $totalPaid;
+            
+            $student->balance_bf = $balanceBf;
+            $student->current_term_fees = $currentTermFees;
+            $student->total_fees = $totalFees;
+            $student->total_paid = $totalPaid;
+            $student->arrears = $arrears;
+            $student->arrears_breakdown = $arrearsBreakdown;
+            $student->parent_name = $student->parents->first()->user->name ?? 'No Parent';
+            $student->parent_phone = $student->parents->first()->phone ?? ($student->parents->first()->user->phone ?? '-');
+            
+            return $student;
+        })->sortByDesc('arrears'); // Show ALL students - no filtering
+        
+        // Also keep the old parent-based approach for backwards compatibility
         $parentsWithArrears = Parents::with(['user', 'students.user', 'students.class', 'students.payments.termFee.feeType', 'students.payments.resultsStatus'])
             ->get()
             ->map(function($parent) use ($allTerms, $currentTerm, $request) {
@@ -864,73 +946,119 @@ class FinanceController extends Controller
             $orphanParent->is_orphan = true;
         }
         
-        return view('backend.finance.parents-arrears', compact('parentsWithArrears', 'classes', 'orphanParent'));
+        return view('backend.finance.parents-arrears', compact('parentsWithArrears', 'classes', 'orphanParent', 'studentsWithArrears'));
+    }
+    
+    /**
+     * Get the fee for a student for a specific term based on their class, curriculum, and student type
+     */
+    private function getStudentTermFee($student, $term)
+    {
+        $studentType = $student->student_type ?? 'day';
+        $curriculumType = $student->curriculum_type ?? 'zimsec';
+        $classNumeric = $student->class->class_numeric ?? 1;
+        $isNewStudent = $student->is_new_student ?? false;
+        
+        // First try to get fee from fee structures (new system)
+        if ($term->feeStructures && $term->feeStructures->count() > 0) {
+            // Find the appropriate fee level group for this student's class
+            $applicableFees = $term->feeStructures->filter(function($fs) use ($classNumeric, $curriculumType, $studentType, $isNewStudent) {
+                if (!$fs->feeLevelGroup) return false;
+                
+                $inRange = $classNumeric >= $fs->feeLevelGroup->min_class_numeric && 
+                           $classNumeric <= $fs->feeLevelGroup->max_class_numeric;
+                $matchesCurriculum = $fs->curriculum_type === $curriculumType;
+                $matchesType = $fs->student_type === $studentType;
+                $matchesNewStatus = $fs->is_for_new_student == $isNewStudent;
+                
+                return $inRange && $matchesCurriculum && $matchesType && $matchesNewStatus;
+            });
+            
+            if ($applicableFees->count() > 0) {
+                return $applicableFees->sum('amount');
+            }
+        }
+        
+        // Fallback to legacy fee fields
+        if ($curriculumType === 'cambridge') {
+            return $studentType === 'boarding' 
+                ? floatval($term->cambridge_boarding_fees ?? 0) 
+                : floatval($term->cambridge_day_fees ?? 0);
+        } else {
+            return $studentType === 'boarding' 
+                ? floatval($term->zimsec_boarding_fees ?? $term->total_boarding_fees ?? $term->total_fees ?? 0) 
+                : floatval($term->zimsec_day_fees ?? $term->total_day_fees ?? $term->total_fees ?? 0);
+        }
     }
 
     public function exportParentsArrears(Request $request)
     {
-        $allTerms = \App\ResultsStatus::with('termFees')->get();
+        $allTerms = \App\ResultsStatus::with(['termFees.feeType', 'feeStructures.feeType', 'feeStructures.feeLevelGroup'])
+            ->orderBy('year', 'asc')
+            ->orderBy('result_period', 'asc')
+            ->get();
         
-        $parentsWithArrears = Parents::with(['user', 'students.user', 'students.class'])
-            ->get()
-            ->map(function($parent) use ($allTerms, $request) {
-                $students = $parent->students;
-                if ($request->has('class_id') && $request->class_id != '') {
-                    $students = $students->filter(function($student) use ($request) {
-                        return $student->class_id == $request->class_id;
-                    });
+        // Get all students with their data
+        $studentsQuery = \App\Student::with(['user', 'class', 'parents.user']);
+        
+        // Apply filters
+        if ($request->has('class_id') && $request->class_id != '') {
+            $studentsQuery->where('class_id', $request->class_id);
+        }
+        if ($request->has('student_type') && $request->student_type != '') {
+            $studentsQuery->where('student_type', $request->student_type);
+        }
+        
+        $students = $studentsQuery->get()->map(function($student) use ($allTerms) {
+            $studentType = $student->student_type ?? 'day';
+            $curriculumType = $student->curriculum_type ?? 'zimsec';
+            $scholarshipPercentage = floatval($student->scholarship_percentage ?? 0);
+            
+            $totalFees = 0;
+            foreach ($allTerms as $term) {
+                $baseFee = $this->getStudentTermFee($student, $term);
+                if ($scholarshipPercentage > 0 && $scholarshipPercentage <= 100) {
+                    $baseFee = $baseFee - ($baseFee * ($scholarshipPercentage / 100));
                 }
-                
-                $totalFees = 0;
-                foreach ($allTerms as $term) {
-                    $totalFees += floatval($term->total_fees) * $students->count();
-                }
-                
-                $totalPaid = 0;
-                foreach ($students as $student) {
-                    $totalPaid += floatval(\App\StudentPayment::where('student_id', $student->id)->sum('amount_paid'));
-                }
-                
-                $parent->filtered_students = $students;
-                $parent->total_fees = $totalFees;
-                $parent->total_paid = $totalPaid;
-                $parent->arrears = $totalFees - $totalPaid;
-                
-                return $parent;
-            })
-            ->filter(function($parent) {
-                return $parent->arrears > 0 && $parent->filtered_students->count() > 0;
-            })
-            ->sortByDesc('arrears');
+                $totalFees += $baseFee;
+            }
+            
+            $totalPaid = floatval(\App\StudentPayment::where('student_id', $student->id)->sum('amount_paid'));
+            $arrears = $totalFees - $totalPaid;
+            
+            $student->total_fees = $totalFees;
+            $student->total_paid = $totalPaid;
+            $student->arrears = $arrears;
+            $student->parent_name = $student->parents->first()->user->name ?? 'No Parent';
+            
+            return $student;
+        })->sortByDesc('arrears');
 
-        $filename = 'parents_arrears_' . date('Y-m-d_His') . '.csv';
+        $filename = 'student_arrears_' . date('Y-m-d_His') . '.csv';
         
         $headers = [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=\"$filename\"",
         ];
 
-        $callback = function() use ($parentsWithArrears) {
+        $callback = function() use ($students) {
             $file = fopen('php://output', 'w');
             
             // CSV Header
-            fputcsv($file, ['#', 'Parent Name', 'Email', 'Phone', 'Students', 'Total Fees', 'Amount Paid', 'Arrears']);
+            fputcsv($file, ['#', 'Student Name', 'Class', 'Type', 'Curriculum', 'Parent', 'Total Fees', 'Amount Paid', 'Arrears']);
             
             $index = 1;
-            foreach ($parentsWithArrears as $parent) {
-                $studentNames = $parent->filtered_students->map(function($s) {
-                    return ($s->user->name ?? $s->name) . ' (' . ($s->class->class_name ?? 'N/A') . ')';
-                })->implode(', ');
-                
+            foreach ($students as $student) {
                 fputcsv($file, [
                     $index++,
-                    $parent->user->name ?? 'N/A',
-                    $parent->user->email ?? 'N/A',
-                    $parent->phone ?? $parent->user->phone ?? 'N/A',
-                    $studentNames,
-                    number_format($parent->total_fees, 2),
-                    number_format($parent->total_paid, 2),
-                    number_format($parent->arrears, 2)
+                    $student->user->name ?? $student->name ?? 'N/A',
+                    $student->class->class_name ?? 'N/A',
+                    ucfirst($student->student_type ?? 'day'),
+                    strtoupper($student->curriculum_type ?? 'zimsec'),
+                    $student->parent_name,
+                    number_format($student->total_fees, 2),
+                    number_format($student->total_paid, 2),
+                    number_format($student->arrears, 2)
                 ]);
             }
             

@@ -40,30 +40,30 @@
     </form>
 
     <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow p-4">
             <div class="flex items-center">
-                <div class="p-3 rounded-full bg-red-100 text-red-600">
+                <div class="p-3 rounded-full bg-blue-100 text-blue-600">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
                     </svg>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm text-gray-500">Total Arrears</p>
-                    <p class="text-2xl font-bold text-red-600">${{ number_format($parentsWithArrears->sum('arrears') + (isset($orphanParent) ? $orphanParent->arrears : 0), 2) }}</p>
+                    <p class="text-sm text-gray-500">Total Students</p>
+                    <p class="text-2xl font-bold text-blue-600">{{ isset($studentsWithArrears) ? $studentsWithArrears->count() : 0 }}</p>
                 </div>
             </div>
         </div>
         <div class="bg-white rounded-lg shadow p-4">
             <div class="flex items-center">
-                <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                <div class="p-3 rounded-full bg-purple-100 text-purple-600">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm text-gray-500">Parents with Arrears</p>
-                    <p class="text-2xl font-bold text-yellow-600">{{ $parentsWithArrears->count() }}</p>
+                    <p class="text-sm text-gray-500">Total Fees</p>
+                    <p class="text-2xl font-bold text-purple-600">${{ number_format(isset($studentsWithArrears) ? $studentsWithArrears->sum('total_fees') : 0, 2) }}</p>
                 </div>
             </div>
         </div>
@@ -76,13 +76,90 @@
                 </div>
                 <div class="ml-4">
                     <p class="text-sm text-gray-500">Total Paid</p>
-                    <p class="text-2xl font-bold text-green-600">${{ number_format($parentsWithArrears->sum('total_paid') + (isset($orphanParent) ? $orphanParent->total_paid : 0), 2) }}</p>
+                    <p class="text-2xl font-bold text-green-600">${{ number_format(isset($studentsWithArrears) ? $studentsWithArrears->sum('total_paid') : 0, 2) }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-red-100 text-red-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-gray-500">Total Arrears</p>
+                    <p class="text-2xl font-bold text-red-600">${{ number_format(isset($studentsWithArrears) ? $studentsWithArrears->sum('arrears') : 0, 2) }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Parents Arrears Table -->
+    <!-- Student Arrears Table (Student-Centric View) -->
+    @if(isset($studentsWithArrears) && $studentsWithArrears->count() > 0)
+    <div class="bg-white rounded-lg shadow overflow-hidden mb-6">
+        <div class="bg-blue-600 px-6 py-3">
+            <h2 class="text-lg font-semibold text-white">Student Arrears ({{ $studentsWithArrears->count() }} students)</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Parent</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Fees</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Paid</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Arrears</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    @foreach($studentsWithArrears as $index => $student)
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm text-gray-500">{{ $index + 1 }}</td>
+                        <td class="px-4 py-3">
+                            <div class="text-sm font-medium text-gray-900">{{ $student->user->name ?? $student->name ?? 'N/A' }}</div>
+                            <div class="text-xs text-gray-500">{{ strtoupper($student->curriculum_type ?? 'zimsec') }}</div>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ $student->class->class_name ?? 'N/A' }}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 text-xs rounded-full {{ ($student->student_type ?? 'day') == 'boarding' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800' }}">
+                                {{ ucfirst($student->student_type ?? 'day') }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ $student->parent_name ?? 'No Parent' }}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900">${{ number_format($student->total_fees ?? 0, 2) }}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-green-600">${{ number_format($student->total_paid ?? 0, 2) }}</td>
+                        <td class="px-4 py-3">
+                            @if(($student->arrears ?? 0) > 0)
+                            <span class="px-2 py-1 text-sm font-bold rounded-full bg-red-100 text-red-800">
+                                ${{ number_format($student->arrears, 2) }}
+                            </span>
+                            @elseif(($student->total_fees ?? 0) == 0)
+                            <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600">No fees set</span>
+                            @else
+                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Paid</span>
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @else
+    <div class="bg-white rounded-lg shadow p-8 mb-6 text-center">
+        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+        <p class="text-lg font-medium text-gray-600">No students found</p>
+        <p class="text-sm text-gray-400">There are no students in the system or no fees have been configured yet.</p>
+    </div>
+    @endif
+
+    <!-- Parents Arrears Table (Legacy View) -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
