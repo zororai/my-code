@@ -50,9 +50,9 @@ class LoginRateLimiter
                 }
             }
 
-            // Apply progressive delay if needed
+            // Apply progressive delay if needed (max 5 seconds to avoid timeout)
             $totalAttempts = LoginAttempt::getTotalFailedByIp($ip, 60);
-            $delay = LoginLockout::getProgressiveDelay($totalAttempts);
+            $delay = min(5, LoginLockout::getProgressiveDelay($totalAttempts));
             if ($delay > 0) {
                 sleep($delay);
             }
