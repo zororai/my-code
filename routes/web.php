@@ -12,7 +12,8 @@
 */
 
 Route::get('/', function () {
-    return redirect('/web');
+    $landingPage = \App\SchoolSetting::get('landing_page', 'logins');
+    return redirect('/' . $landingPage);
 });
 
 
@@ -523,6 +524,10 @@ Route::group(['middleware' => ['auth','role_or_permission:Admin|sidebar-finance|
     Route::get('/admin/settings/receipt', 'SchoolSettingsController@receiptSettings')->name('admin.settings.receipt');
     Route::put('/admin/settings/receipt', 'SchoolSettingsController@updateReceiptSettings')->name('admin.settings.receipt.update');
 
+    // Theme Settings Routes
+    Route::get('/admin/settings/theme', 'SchoolSettingsController@themeSettings')->name('admin.settings.theme');
+    Route::put('/admin/settings/theme', 'SchoolSettingsController@updateThemeSettings')->name('admin.settings.theme.update');
+
     // Website Settings Routes
     Route::get('/admin/website', 'WebsiteSettingController@index')->name('admin.website.index');
     Route::get('/admin/website/general', 'WebsiteSettingController@general')->name('admin.website.general');
@@ -531,6 +536,8 @@ Route::group(['middleware' => ['auth','role_or_permission:Admin|sidebar-finance|
     Route::get('/admin/website/text', 'WebsiteSettingController@text')->name('admin.website.text');
     Route::get('/admin/website/pages', 'WebsiteSettingController@pages')->name('admin.website.pages');
     Route::get('/admin/website/homepage', 'WebsiteSettingController@homepage')->name('admin.website.homepage');
+    Route::get('/admin/website/landing-page', 'WebsiteSettingController@landingPage')->name('admin.website.landing-page');
+    Route::put('/admin/website/landing-page', 'WebsiteSettingController@updateLandingPage')->name('admin.website.landing-page.update');
     Route::put('/admin/website/update', 'WebsiteSettingController@update')->name('admin.website.update');
     Route::get('/admin/website/banners', 'WebsiteSettingController@banners')->name('admin.website.banners');
     Route::put('/admin/website/banners', 'WebsiteSettingController@updateBanners')->name('admin.website.banners.update');

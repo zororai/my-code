@@ -1,6 +1,10 @@
+@php
+    $sidebarColor = \App\SchoolSetting::get('theme_sidebar_color', '#2563eb');
+@endphp
 <aside x-data="{ collapsed: false }" 
      :class="[collapsed ? 'w-20' : 'w-64', sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0']" 
-     class="sidebar bg-blue-600 h-screen shadow-sm fixed top-0 left-0 bottom-0 z-40 border-r border-blue-700 transition-all duration-300 transform flex flex-col">
+     class="sidebar h-screen shadow-sm fixed top-0 left-0 bottom-0 z-40 transition-all duration-300 transform flex flex-col"
+     style="background-color: {{ $sidebarColor }}; border-right: 1px solid rgba(0,0,0,0.1);">
     <!-- Header Section -->
     <div class="p-4 border-b border-blue-700">
         <div class="flex items-center justify-between">
@@ -825,6 +829,14 @@
                     </svg>
                     Homepage
                 </a>
+                @can('sidebar-website-landing-page')
+                <a href="{{ route('admin.website.landing-page') }}" class="flex items-center px-3 py-2 text-sm text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                    </svg>
+                    Landing Page
+                </a>
+                @endcan
                 <a href="{{ route('admin.website.banners') }}" class="flex items-center px-3 py-2 text-sm text-white rounded-lg hover:bg-blue-700 transition-colors">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
@@ -1113,6 +1125,14 @@
                     </svg>
                     Receipt Settings
                 </a>
+                @can('sidebar-settings-theme')
+                <a href="{{ route('admin.settings.theme') }}" class="flex items-center px-3 py-2 text-sm text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                    </svg>
+                    Theme Settings
+                </a>
+                @endcan
             </div>
         </div>
         @endif

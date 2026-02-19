@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rose of Sharon High School - Login</title>
+    <title>{{ \App\WebsiteSetting::get('school_name', 'Dzidzo Student Portal') }} - Login</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -173,7 +173,7 @@
 <body>
     <div class="login-container">
         <div class="logo-container">
-            <img src="{{ asset('images/logo.png') }}" alt="Rose of Sharon High School">
+            <img src="{{ asset(\App\WebsiteSetting::get('site_logo', 'images/logo.png')) }}" alt="{{ \App\WebsiteSetting::get('school_name', 'Dzidzo Student Portal') }}">
         </div>
         
         <form class="login-form" method="POST" action="{{ route('login') }}">

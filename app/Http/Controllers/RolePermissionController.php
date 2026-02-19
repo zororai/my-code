@@ -91,6 +91,7 @@ class RolePermissionController extends Controller
                 'sidebar-website-colors' => 'Theme Colors',
                 'sidebar-website-images' => 'Images & Logo',
                 'sidebar-website-text' => 'Text Content',
+                'sidebar-website-landing-page' => 'Landing Page Settings',
                 'sidebar-banner' => 'Banner',
                 'sidebar-newsletter' => 'Newsletter',
                 'sidebar-events' => 'Events'
@@ -131,7 +132,8 @@ class RolePermissionController extends Controller
                 'sidebar-payables' => 'Accounts Payable'
             ],
             'Settings' => [
-                'sidebar-settings' => 'Settings Section'
+                'sidebar-settings' => 'Settings Section',
+                'sidebar-settings-theme' => 'Theme Settings'
             ]
         ];
     }
@@ -178,6 +180,7 @@ class RolePermissionController extends Controller
             'sidebar-website-colors',
             'sidebar-website-images',
             'sidebar-website-text',
+            'sidebar-website-landing-page',
             'sidebar-payment-verification',
             'sidebar-teacher-attendance',
             'sidebar-teacher-leave',

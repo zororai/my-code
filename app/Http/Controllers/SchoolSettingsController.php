@@ -149,4 +149,41 @@ class SchoolSettingsController extends Controller
         return redirect()->route('admin.settings.receipt')
             ->with('success', 'Receipt settings updated successfully!');
     }
+
+    /**
+     * Display theme settings page
+     */
+    public function themeSettings()
+    {
+        $settings = [
+            'theme_primary_color' => SchoolSetting::get('theme_primary_color', '#2563eb'),
+            'theme_primary_hover' => SchoolSetting::get('theme_primary_hover', '#1d4ed8'),
+            'theme_primary_dark' => SchoolSetting::get('theme_primary_dark', '#1e40af'),
+            'theme_sidebar_color' => SchoolSetting::get('theme_sidebar_color', '#2563eb'),
+            'theme_navbar_color' => SchoolSetting::get('theme_navbar_color', '#2563eb'),
+        ];
+        
+        return view('backend.admin.settings.theme-settings', compact('settings'));
+    }
+
+    /**
+     * Update theme settings
+     */
+    public function updateThemeSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'theme_primary_color' => 'required|string|max:20',
+            'theme_primary_hover' => 'required|string|max:20',
+            'theme_primary_dark' => 'required|string|max:20',
+            'theme_sidebar_color' => 'required|string|max:20',
+            'theme_navbar_color' => 'required|string|max:20',
+        ]);
+
+        foreach ($validated as $key => $value) {
+            SchoolSetting::set($key, $value, 'color');
+        }
+
+        return redirect()->route('admin.settings.theme')
+            ->with('success', 'Theme settings updated successfully!');
+    }
 }

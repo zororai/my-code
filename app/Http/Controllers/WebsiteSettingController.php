@@ -72,6 +72,29 @@ class WebsiteSettingController extends Controller
     }
 
     /**
+     * Show landing page settings form
+     */
+    public function landingPage()
+    {
+        $currentLandingPage = \App\SchoolSetting::get('landing_page', 'logins');
+        return view('backend.website-settings.landing-page', compact('currentLandingPage'));
+    }
+
+    /**
+     * Update landing page setting
+     */
+    public function updateLandingPage(Request $request)
+    {
+        $request->validate([
+            'landing_page' => 'required|in:web,logins'
+        ]);
+
+        \App\SchoolSetting::set('landing_page', $request->landing_page, 'select', 'The default landing page for visitors');
+
+        return redirect()->back()->with('success', 'Landing page updated successfully!');
+    }
+
+    /**
      * Update settings
      */
     public function update(Request $request)
