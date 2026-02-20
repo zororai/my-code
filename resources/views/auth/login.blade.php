@@ -92,7 +92,7 @@
                         <input type="text" name="email" id="email" 
                             class="block w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent focus:bg-white transition-all @error('email') ring-2 ring-red-500 @enderror" 
                             placeholder="Enter your email or phone number" 
-                            value="{{ old('email') }}" 
+                            value="" 
                             required>
                     </div>
                     @error('email')

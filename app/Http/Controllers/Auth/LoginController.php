@@ -6,8 +6,6 @@ use App\Http\Controllers\Controller;
 use App\User;
 use App\Teacher;
 use App\Parents;
-use App\LoginAttempt;
-use App\LoginLockout;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -42,55 +40,15 @@ class LoginController extends Controller
     public function __construct()
     {
         $this->middleware('guest')->except('logout');
-        $this->middleware('login.ratelimit')->only('login');
     }
 
     public function login(Request $request)
     {
         $this->validateLogin($request);
 
-        $ip = $request->ip();
-        $email = $request->input('email');
-        $userAgent = $request->userAgent();
-
-        // Check if CAPTCHA is required and validate it
-        $captchaRequired = $request->input('_captcha_required', false) || LoginAttempt::requiresCaptcha($ip, $email);
-        
-        if ($captchaRequired) {
-            $captchaToken = $request->input('g-recaptcha-response');
-            if (!$captchaToken || !$this->verifyCaptcha($captchaToken)) {
-                LoginAttempt::logAttempt($ip, $email, $userAgent, false, 'CAPTCHA failed', true, false);
-                return $this->sendCaptchaRequiredResponse($request);
-            }
-        }
-
-        // Check for lockouts before attempting authentication
-        if (LoginLockout::isIpLocked($ip) || LoginLockout::isAccountLocked($email)) {
-            $lockoutTime = LoginLockout::getLockoutTime($ip, $email);
-            return $this->sendLockoutResponse($request, $lockoutTime);
-        }
-
         // Attempt login
         if ($this->attemptLogin($request)) {
-            // Log successful attempt
-            LoginAttempt::logAttempt($ip, $email, $userAgent, true, null, $captchaRequired, true);
-            
-            // Clear any lockouts on successful login
-            LoginLockout::clearLockout($ip, $email);
-            
             return $this->sendLoginResponse($request);
-        }
-
-        // Log failed attempt
-        LoginAttempt::logAttempt($ip, $email, $userAgent, false, 'Invalid credentials', $captchaRequired, $captchaRequired);
-
-        // Check if we need to apply lockout
-        $failedAttempts = LoginAttempt::getRecentFailedByEmail($email, 1);
-        if ($failedAttempts >= 10) {
-            $lockoutMinutes = LoginLockout::getProgressiveLockoutMinutes($failedAttempts);
-            LoginLockout::lockAccount($email, $lockoutMinutes, $failedAttempts, 'Too many failed attempts');
-            
-            $this->logSecurityEvent($ip, $email, 'Account locked after ' . $failedAttempts . ' failed attempts');
         }
 
         return $this->sendFailedLoginResponse($request);
