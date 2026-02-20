@@ -121,19 +121,27 @@
                 <div id="copiesSection" class="md:col-span-2 hidden">
                     <div class="border-t pt-4 mt-4">
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-semibold text-gray-800">Book Copies (with unique ISBNs)</h3>
-                            <button type="button" onclick="addCopyRow()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">
-                                + Add Copy
-                            </button>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-800">Book Copies</h3>
+                                <p class="text-xs text-gray-500">ISBN is optional - copies without ISBN will get auto-generated IDs</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button type="button" onclick="addMultipleCopies()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm">
+                                    + Add Multiple
+                                </button>
+                                <button type="button" onclick="addCopyRow()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">
+                                    + Add Copy
+                                </button>
+                            </div>
                         </div>
                         <div id="copiesContainer">
                             <div class="copy-row bg-gray-50 border rounded-lg p-3 mb-2" data-index="0">
-                                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
                                     <div class="flex items-center">
-                                        <span class="text-sm font-medium text-gray-600 mr-2">#1</span>
+                                        <span class="copy-number text-sm font-medium text-gray-600 mr-2">#1</span>
                                     </div>
                                     <div>
-                                        <input type="text" name="copies[0][isbn]" placeholder="ISBN *" 
+                                        <input type="text" name="copies[0][isbn]" placeholder="ISBN (optional)" 
                                             class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
                                     </div>
                                     <div>
@@ -145,10 +153,12 @@
                                             <option value="damaged">Damaged</option>
                                         </select>
                                     </div>
-                                    <div class="flex items-center">
+                                    <div>
                                         <input type="text" name="copies[0][condition_notes]" placeholder="Notes (optional)" 
                                             class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                                        <button type="button" onclick="removeCopyRow(this)" class="ml-2 text-red-500 hover:text-red-700 hidden remove-btn">
+                                    </div>
+                                    <div class="flex items-center justify-end">
+                                        <button type="button" onclick="removeCopyRow(this)" class="text-red-500 hover:text-red-700 hidden remove-btn">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                             </svg>
@@ -157,7 +167,13 @@
                                 </div>
                             </div>
                         </div>
-                        <p class="text-xs text-gray-500 mt-2">Each copy must have a unique ISBN number for individual tracking and borrowing.</p>
+                        <div class="flex items-center justify-between mt-2">
+                            <p class="text-xs text-gray-500">
+                                <span class="text-green-600 font-medium">With ISBN:</span> Enter the ISBN printed on the book. 
+                                <span class="text-blue-600 font-medium">Without ISBN:</span> Leave blank - ID will be auto-generated.
+                            </p>
+                            <span id="copyCount" class="text-sm font-medium text-gray-600">Total: 1 copy</span>
+                        </div>
                     </div>
                 </div>
 
@@ -211,12 +227,12 @@ function addCopyRow() {
     newRow.dataset.index = copyIndex;
     
     newRow.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div class="flex items-center">
-                <span class="text-sm font-medium text-gray-600 mr-2">#${copyIndex + 1}</span>
+                <span class="copy-number text-sm font-medium text-gray-600 mr-2">#${copyIndex + 1}</span>
             </div>
             <div>
-                <input type="text" name="copies[${copyIndex}][isbn]" placeholder="ISBN *" 
+                <input type="text" name="copies[${copyIndex}][isbn]" placeholder="ISBN (optional)" 
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
@@ -228,10 +244,12 @@ function addCopyRow() {
                     <option value="damaged">Damaged</option>
                 </select>
             </div>
-            <div class="flex items-center">
+            <div>
                 <input type="text" name="copies[${copyIndex}][condition_notes]" placeholder="Notes (optional)" 
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                <button type="button" onclick="removeCopyRow(this)" class="ml-2 text-red-500 hover:text-red-700">
+            </div>
+            <div class="flex items-center justify-end">
+                <button type="button" onclick="removeCopyRow(this)" class="text-red-500 hover:text-red-700">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
@@ -245,6 +263,16 @@ function addCopyRow() {
     updateCopyNumbers();
 }
 
+function addMultipleCopies() {
+    const count = prompt('How many copies do you want to add? (without ISBN)', '10');
+    if (count && !isNaN(count) && parseInt(count) > 0) {
+        const numCopies = parseInt(count);
+        for (let i = 0; i < numCopies; i++) {
+            addCopyRow();
+        }
+    }
+}
+
 function removeCopyRow(button) {
     const row = button.closest('.copy-row');
     row.remove();
@@ -254,7 +282,7 @@ function removeCopyRow(button) {
 function updateCopyNumbers() {
     const rows = document.querySelectorAll('.copy-row');
     rows.forEach((row, index) => {
-        const numberSpan = row.querySelector('.text-gray-600');
+        const numberSpan = row.querySelector('.copy-number');
         if (numberSpan) {
             numberSpan.textContent = `#${index + 1}`;
         }
@@ -267,6 +295,12 @@ function updateCopyNumbers() {
             }
         }
     });
+    
+    // Update total count
+    const countSpan = document.getElementById('copyCount');
+    if (countSpan) {
+        countSpan.textContent = `Total: ${rows.length} ${rows.length === 1 ? 'copy' : 'copies'}`;
+    }
 }
 </script>
 @endsection

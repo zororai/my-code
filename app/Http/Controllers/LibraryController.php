@@ -437,7 +437,7 @@ class LibraryController extends Controller
 
         if ($addCopies) {
             $rules['copies'] = 'required|array|min:1';
-            $rules['copies.*.isbn'] = 'required|string|max:50|distinct|unique:book_copies,isbn';
+            $rules['copies.*.isbn'] = 'nullable|string|max:50';
             $rules['copies.*.condition'] = 'required|in:excellent,good,fair,poor,damaged';
             $rules['copies.*.condition_notes'] = 'nullable|string|max:500';
         } else {
@@ -476,18 +476,21 @@ class LibraryController extends Controller
         if ($addCopies && $request->copies) {
             $copyNumber = 1;
             foreach ($request->copies as $copyData) {
-                if (!empty($copyData['isbn'])) {
-                    BookCopy::create([
-                        'book_id' => $book->id,
-                        'isbn' => $copyData['isbn'],
-                        'copy_number' => $book->book_number . '-' . $copyNumber,
-                        'condition' => $copyData['condition'] ?? 'good',
-                        'condition_notes' => $copyData['condition_notes'] ?? null,
-                        'status' => 'available',
-                        'added_by' => auth()->id(),
-                    ]);
-                    $copyNumber++;
-                }
+                // Generate ISBN if not provided (auto-generated ID)
+                $isbn = !empty($copyData['isbn']) 
+                    ? $copyData['isbn'] 
+                    : $book->book_number . '-C' . str_pad($copyNumber, 3, '0', STR_PAD_LEFT);
+                
+                BookCopy::create([
+                    'book_id' => $book->id,
+                    'isbn' => $isbn,
+                    'copy_number' => $book->book_number . '-' . $copyNumber,
+                    'condition' => $copyData['condition'] ?? 'good',
+                    'condition_notes' => $copyData['condition_notes'] ?? null,
+                    'status' => 'available',
+                    'added_by' => auth()->id(),
+                ]);
+                $copyNumber++;
             }
         }
 
