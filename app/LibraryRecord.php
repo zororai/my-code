@@ -15,8 +15,10 @@ class LibraryRecord extends Model
         'teacher_id',
         'issued_by',
         'book_id',
+        'book_copy_id',
         'book_title',
         'book_number',
+        'copy_isbn',
         'issue_date',
         'due_date',
         'return_date',
@@ -48,6 +50,11 @@ class LibraryRecord extends Model
     public function book()
     {
         return $this->belongsTo(Book::class);
+    }
+
+    public function bookCopy()
+    {
+        return $this->belongsTo(BookCopy::class);
     }
 
     /**

@@ -296,12 +296,14 @@ Route::group(['middleware' => ['auth','role_or_permission:Admin|sidebar-finance|
     Route::put('finance/products/{id}', 'ProductController@update')->name('finance.products.update');
     Route::post('finance/products/{id}/adjust-stock', 'ProductController@adjustStock')->name('finance.products.adjust-stock');
 
-    // Finance - Uniform Collections
-    Route::get('finance/uniform-collections', 'ProductController@uniformCollections')->name('finance.uniform-collections');
-    Route::get('finance/uniform-collections/search-student', 'ProductController@searchStudentForUniform')->name('finance.uniform-collections.search-student');
-    Route::get('finance/uniform-collections/student/{id}', 'ProductController@studentUniformHistory')->name('finance.uniform-collections.student');
-    Route::post('finance/uniform-collections/record', 'ProductController@recordUniformCollection')->name('finance.uniform-collections.record');
-    Route::post('finance/uniform-collections/{id}/mark-collected', 'ProductController@markUniformCollected')->name('finance.uniform-collections.mark-collected');
+    // Finance - Student Collections (Uniforms, Report Cards, IDs, etc.)
+    Route::get('finance/student-collections', 'ProductController@uniformCollections')->name('finance.uniform-collections');
+    Route::get('finance/student-collections/search-student', 'ProductController@searchStudentForUniform')->name('finance.uniform-collections.search-student');
+    Route::get('finance/student-collections/search-all-students', 'ProductController@searchAllStudents')->name('finance.uniform-collections.search-all-students');
+    Route::get('finance/student-collections/student/{id}', 'ProductController@studentUniformHistory')->name('finance.uniform-collections.student');
+    Route::post('finance/student-collections/record-uniform', 'ProductController@recordUniformCollection')->name('finance.uniform-collections.record');
+    Route::post('finance/student-collections/record-item', 'ProductController@recordItemCollection')->name('finance.uniform-collections.record-item');
+    Route::post('finance/student-collections/{id}/mark-collected', 'ProductController@markUniformCollected')->name('finance.uniform-collections.mark-collected');
 
     // Finance - Expenses
     Route::get('admin/finance/expenses', 'ExpenseController@index')->name('admin.finance.expenses.index');
@@ -745,6 +747,10 @@ Route::group(['middleware' => ['auth']], function () {
         Route::put('/admin/library/books/{id}', 'LibraryController@updateBook')->name('admin.library.books.update');
         Route::get('/admin/library/books/{id}/history', 'LibraryController@bookHistory')->name('admin.library.books.history');
         Route::delete('/admin/library/books/{id}', 'LibraryController@destroyBook')->name('admin.library.books.destroy');
+        Route::get('/admin/library/books/{id}/copies', 'LibraryController@bookCopies')->name('admin.library.books.copies');
+        Route::get('/admin/library/books/{id}/copies/add', 'LibraryController@createBookCopies')->name('admin.library.books.copies.create');
+        Route::post('/admin/library/books/{id}/copies', 'LibraryController@storeBookCopies')->name('admin.library.books.copies.store');
+        Route::get('/admin/library/search-copies', 'LibraryController@searchBookCopies')->name('admin.library.search-copies');
     });
 });
 

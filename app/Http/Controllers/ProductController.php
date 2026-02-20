@@ -493,6 +493,10 @@ class ProductController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->item_type) {
+            $query->where('item_type', $request->item_type);
+        }
+
         if ($request->search) {
             $query->whereHas('student.user', function($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%');
@@ -505,8 +509,9 @@ class ProductController extends Controller
 
         $pendingCount = UniformCollection::where('status', 'pending')->count();
         $collectedCount = UniformCollection::where('status', 'collected')->count();
+        $itemTypes = UniformCollection::$itemTypes;
 
-        return view('backend.finance.uniform-collections.index', compact('collections', 'pendingCount', 'collectedCount'));
+        return view('backend.finance.uniform-collections.index', compact('collections', 'pendingCount', 'collectedCount', 'itemTypes'));
     }
 
     public function searchStudentForUniform(Request $request)
@@ -634,7 +639,7 @@ class ProductController extends Controller
         if ($collection->status === 'collected') {
             return response()->json([
                 'success' => false,
-                'message' => 'This uniform has already been collected'
+                'message' => 'This item has already been collected'
             ], 400);
         }
 
@@ -642,8 +647,66 @@ class ProductController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Uniform marked as collected',
+            'message' => 'Item marked as collected',
             'collection' => $collection->load(['student.user', 'collector']),
         ]);
+    }
+
+    public function recordItemCollection(Request $request)
+    {
+        $request->validate([
+            'student_id' => 'required|exists:students,id',
+            'item_type' => 'required|in:report_card,student_id,certificate,other',
+            'item_name' => 'required|string|max:255',
+            'academic_year' => 'nullable|string',
+            'term' => 'nullable|string',
+            'notes' => 'nullable|string',
+        ]);
+
+        $student = Student::findOrFail($request->student_id);
+
+        $collection = UniformCollection::create([
+            'student_id' => $student->id,
+            'item_type' => $request->item_type,
+            'item_name' => $request->item_name,
+            'academic_year' => $request->academic_year,
+            'term' => $request->term,
+            'quantity' => 1,
+            'status' => 'collected',
+            'collected_at' => now(),
+            'collected_by' => auth()->id(),
+            'notes' => $request->notes,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => ucfirst(str_replace('_', ' ', $request->item_type)) . ' collection recorded',
+            'collection' => $collection->load(['student.user']),
+        ]);
+    }
+
+    public function searchAllStudents(Request $request)
+    {
+        $search = $request->search;
+
+        $students = Student::with(['user', 'class'])
+            ->where(function($q) use ($search) {
+                $q->whereHas('user', function($query) use ($search) {
+                    $query->where('name', 'like', '%' . $search . '%');
+                })->orWhere('roll_number', 'like', '%' . $search . '%');
+            })
+            ->limit(10)
+            ->get()
+            ->map(function($student) {
+                return [
+                    'id' => $student->id,
+                    'name' => $student->user->name ?? 'Unknown',
+                    'roll_number' => $student->roll_number,
+                    'class' => $student->class->class_name ?? 'N/A',
+                    'is_new_student' => $student->is_new_student,
+                ];
+            });
+
+        return response()->json(['students' => $students]);
     }
 }

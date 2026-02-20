@@ -4,25 +4,28 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Book extends Model
+class BookCopy extends Model
 {
     protected $fillable = [
-        'title',
-        'book_number',
+        'book_id',
+        'isbn',
+        'copy_number',
         'condition',
         'condition_notes',
-        'image',
-        'author',
-        'isbn',
-        'category',
-        'quantity',
-        'available_quantity',
         'status',
         'added_by',
     ];
 
     /**
-     * Get the user who added this book
+     * Get the book this copy belongs to
+     */
+    public function book()
+    {
+        return $this->belongsTo(Book::class);
+    }
+
+    /**
+     * Get the user who added this copy
      */
     public function addedBy()
     {
@@ -30,23 +33,7 @@ class Book extends Model
     }
 
     /**
-     * Get all copies of this book
-     */
-    public function copies()
-    {
-        return $this->hasMany(BookCopy::class);
-    }
-
-    /**
-     * Get available copies of this book
-     */
-    public function availableCopies()
-    {
-        return $this->hasMany(BookCopy::class)->where('status', 'available');
-    }
-
-    /**
-     * Get all library records (borrow history) for this book
+     * Get all library records for this copy
      */
     public function libraryRecords()
     {
@@ -54,19 +41,19 @@ class Book extends Model
     }
 
     /**
-     * Get active borrows for this book
+     * Get active borrow for this copy
      */
-    public function activeBorrows()
+    public function activeBorrow()
     {
-        return $this->hasMany(LibraryRecord::class)->where('status', 'issued');
+        return $this->hasOne(LibraryRecord::class)->where('status', 'issued');
     }
 
     /**
-     * Check if book is available for borrowing
+     * Check if copy is available for borrowing
      */
     public function isAvailable()
     {
-        return $this->available_quantity > 0;
+        return $this->status === 'available';
     }
 
     /**
@@ -95,6 +82,7 @@ class Book extends Model
             'borrowed' => 'bg-yellow-100 text-yellow-800',
             'reserved' => 'bg-blue-100 text-blue-800',
             'lost' => 'bg-red-100 text-red-800',
+            'damaged' => 'bg-orange-100 text-orange-800',
         ];
 
         return $colors[$this->status] ?? 'bg-gray-100 text-gray-800';

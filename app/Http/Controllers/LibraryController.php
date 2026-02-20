@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\LibraryRecord;
 use App\Book;
+use App\BookCopy;
 use App\Student;
 use App\Teacher;
 use App\User;
@@ -126,8 +127,10 @@ class LibraryController extends Controller
         $rules = [
             'borrower_type' => 'required|in:student,teacher',
             'book_id' => 'nullable|exists:books,id',
+            'book_copy_id' => 'nullable|exists:book_copies,id',
             'book_title' => 'required|string|max:255',
             'book_number' => 'required|string|max:100',
+            'copy_isbn' => 'nullable|string|max:50',
             'issue_date' => 'required|date',
             'due_date' => 'nullable|date|after_or_equal:issue_date',
             'notes' => 'nullable|string|max:500',
@@ -141,8 +144,28 @@ class LibraryController extends Controller
         
         $request->validate($rules);
 
-        // If a book from archive is selected, decrement available quantity
-        if ($request->book_id) {
+        // If borrowing a specific copy by ISBN
+        if ($request->book_copy_id) {
+            $copy = BookCopy::findOrFail($request->book_copy_id);
+            
+            if ($copy->status !== 'available') {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'This book copy (ISBN: ' . $copy->isbn . ') is not available for borrowing.');
+            }
+
+            // Mark copy as borrowed
+            $copy->update(['status' => 'borrowed']);
+            
+            // Update parent book available quantity
+            $book = $copy->book;
+            $book->decrement('available_quantity');
+            if ($book->available_quantity <= 0) {
+                $book->update(['status' => 'borrowed']);
+            }
+        }
+        // Legacy: If a book from archive is selected without specific copy
+        elseif ($request->book_id) {
             $book = Book::findOrFail($request->book_id);
             
             if ($book->available_quantity <= 0) {
@@ -163,8 +186,10 @@ class LibraryController extends Controller
             'borrower_type' => $borrowerType,
             'issued_by' => auth()->id(),
             'book_id' => $request->book_id,
+            'book_copy_id' => $request->book_copy_id,
             'book_title' => $request->book_title,
             'book_number' => $request->book_number,
+            'copy_isbn' => $request->copy_isbn,
             'issue_date' => $request->issue_date,
             'due_date' => $request->due_date,
             'status' => 'issued',
@@ -201,8 +226,21 @@ class LibraryController extends Controller
     {
         $record = LibraryRecord::findOrFail($id);
         
-        // If book was from archive, increment available quantity
-        if ($record->book_id) {
+        // If a specific copy was borrowed, mark it as available
+        if ($record->book_copy_id) {
+            $copy = BookCopy::find($record->book_copy_id);
+            if ($copy) {
+                $copy->update(['status' => 'available']);
+                
+                // Update parent book available quantity
+                if ($copy->book) {
+                    $copy->book->increment('available_quantity');
+                    $copy->book->update(['status' => 'available']);
+                }
+            }
+        }
+        // Legacy: If book was from archive without specific copy
+        elseif ($record->book_id) {
             $book = Book::find($record->book_id);
             if ($book) {
                 $book->increment('available_quantity');
@@ -492,6 +530,95 @@ class LibraryController extends Controller
             });
 
         return response()->json($books);
+    }
+
+    /**
+     * Search book copies by ISBN for borrowing
+     */
+    public function searchBookCopies(Request $request)
+    {
+        $search = $request->get('q', '');
+        
+        $copies = BookCopy::with('book')
+            ->where('status', 'available')
+            ->where(function ($query) use ($search) {
+                $query->where('isbn', 'like', "%{$search}%")
+                    ->orWhere('copy_number', 'like', "%{$search}%")
+                    ->orWhereHas('book', function ($q) use ($search) {
+                        $q->where('title', 'like', "%{$search}%")
+                          ->orWhere('book_number', 'like', "%{$search}%");
+                    });
+            })
+            ->limit(15)
+            ->get()
+            ->map(function ($copy) {
+                return [
+                    'id' => $copy->id,
+                    'isbn' => $copy->isbn,
+                    'copy_number' => $copy->copy_number,
+                    'book_id' => $copy->book_id,
+                    'title' => $copy->book->title ?? 'Unknown',
+                    'book_number' => $copy->book->book_number ?? '',
+                    'author' => $copy->book->author ?? 'Unknown',
+                    'condition' => ucfirst($copy->condition),
+                ];
+            });
+
+        return response()->json($copies);
+    }
+
+    /**
+     * View book copies for a specific book
+     */
+    public function bookCopies($bookId)
+    {
+        $book = Book::with(['copies.addedBy', 'copies.activeBorrow'])->findOrFail($bookId);
+        return view('backend.admin.library.books.copies', compact('book'));
+    }
+
+    /**
+     * Store multiple book copies with unique ISBNs
+     */
+    public function storeBookCopies(Request $request, $bookId)
+    {
+        $book = Book::findOrFail($bookId);
+
+        $request->validate([
+            'copies' => 'required|array|min:1',
+            'copies.*.isbn' => 'required|string|max:50|unique:book_copies,isbn',
+            'copies.*.condition' => 'required|in:excellent,good,fair,poor,damaged',
+            'copies.*.condition_notes' => 'nullable|string|max:500',
+        ]);
+
+        $copiesAdded = 0;
+        foreach ($request->copies as $index => $copyData) {
+            BookCopy::create([
+                'book_id' => $book->id,
+                'isbn' => $copyData['isbn'],
+                'copy_number' => $book->book_number . '-' . ($book->copies()->count() + $copiesAdded + 1),
+                'condition' => $copyData['condition'],
+                'condition_notes' => $copyData['condition_notes'] ?? null,
+                'status' => 'available',
+                'added_by' => auth()->id(),
+            ]);
+            $copiesAdded++;
+        }
+
+        // Update book quantity
+        $book->increment('quantity', $copiesAdded);
+        $book->increment('available_quantity', $copiesAdded);
+
+        return redirect()->route('admin.library.books.copies', $book->id)
+            ->with('success', "{$copiesAdded} book copies added successfully!");
+    }
+
+    /**
+     * Show form to add copies to a book
+     */
+    public function createBookCopies($bookId)
+    {
+        $book = Book::findOrFail($bookId);
+        return view('backend.admin.library.books.add-copies', compact('book'));
     }
 
     /**

@@ -6,7 +6,25 @@ use Illuminate\Database\Eloquent\Model;
 
 class UniformCollection extends Model
 {
+    const TYPE_UNIFORM = 'uniform';
+    const TYPE_REPORT_CARD = 'report_card';
+    const TYPE_STUDENT_ID = 'student_id';
+    const TYPE_CERTIFICATE = 'certificate';
+    const TYPE_OTHER = 'other';
+
+    public static $itemTypes = [
+        self::TYPE_UNIFORM => 'Uniform',
+        self::TYPE_REPORT_CARD => 'Report Card',
+        self::TYPE_STUDENT_ID => 'Student ID',
+        self::TYPE_CERTIFICATE => 'Certificate',
+        self::TYPE_OTHER => 'Other',
+    ];
+
     protected $fillable = [
+        'item_type',
+        'item_name',
+        'academic_year',
+        'term',
         'student_id',
         'product_id',
         'product_sale_id',
