@@ -226,11 +226,60 @@ class LibraryController extends Controller
     {
         $record = LibraryRecord::findOrFail($id);
         
-        // If a specific copy was borrowed, mark it as available
+        $returnType = $request->input('return_type', 'returned');
+        $returnCondition = $request->input('return_condition', 'good');
+        $returnNotes = $request->input('return_notes');
+        
+        // Handle lost book
+        if ($returnType === 'lost') {
+            // Mark the specific copy as lost
+            if ($record->book_copy_id) {
+                $copy = BookCopy::find($record->book_copy_id);
+                if ($copy) {
+                    $copy->update([
+                        'status' => 'lost',
+                        'condition_notes' => $returnNotes ? 'LOST: ' . $returnNotes : 'Marked as lost'
+                    ]);
+                    
+                    // Decrement book quantity (copy is lost, not available)
+                    if ($copy->book) {
+                        $copy->book->decrement('quantity');
+                        if ($copy->book->available_quantity <= 0) {
+                            $copy->book->update(['status' => 'unavailable']);
+                        }
+                    }
+                }
+            }
+            // Legacy: If book was from archive without specific copy
+            elseif ($record->book_id) {
+                $book = Book::find($record->book_id);
+                if ($book) {
+                    $book->decrement('quantity');
+                    if ($book->quantity <= 0) {
+                        $book->update(['status' => 'unavailable']);
+                    }
+                }
+            }
+            
+            $record->update([
+                'return_date' => Carbon::now(),
+                'status' => 'lost',
+                'notes' => $returnNotes ? $record->notes . "\nLOST: " . $returnNotes : $record->notes . "\nMarked as LOST",
+            ]);
+
+            return redirect()->back()->with('success', 'Book marked as LOST!');
+        }
+        
+        // Handle normal return
+        // If a specific copy was borrowed, mark it as available and update condition
         if ($record->book_copy_id) {
             $copy = BookCopy::find($record->book_copy_id);
             if ($copy) {
-                $copy->update(['status' => 'available']);
+                $copy->update([
+                    'status' => 'available',
+                    'condition' => $returnCondition,
+                    'condition_notes' => $returnNotes ?: $copy->condition_notes
+                ]);
                 
                 // Update parent book available quantity
                 if ($copy->book) {
@@ -244,16 +293,20 @@ class LibraryController extends Controller
             $book = Book::find($record->book_id);
             if ($book) {
                 $book->increment('available_quantity');
-                $book->update(['status' => 'available']);
+                $book->update([
+                    'status' => 'available',
+                    'condition' => $returnCondition
+                ]);
             }
         }
         
         $record->update([
             'return_date' => Carbon::now(),
             'status' => 'returned',
+            'notes' => $returnNotes ? $record->notes . "\nReturn condition: " . $returnCondition . ". " . $returnNotes : $record->notes,
         ]);
 
-        return redirect()->back()->with('success', 'Book marked as returned!');
+        return redirect()->back()->with('success', 'Book returned successfully! Condition: ' . ucfirst($returnCondition));
     }
 
     /**
@@ -369,7 +422,9 @@ class LibraryController extends Controller
      */
     public function storeBook(Request $request)
     {
-        $request->validate([
+        $addCopies = $request->has('add_copies');
+        
+        $rules = [
             'title' => 'required|string|max:255',
             'book_number' => 'required|string|max:100|unique:books,book_number',
             'condition' => 'required|in:excellent,good,fair,poor,damaged',
@@ -378,15 +433,33 @@ class LibraryController extends Controller
             'author' => 'nullable|string|max:255',
             'isbn' => 'nullable|string|max:50',
             'category' => 'nullable|string|max:100',
-            'quantity' => 'required|integer|min:1',
-        ]);
+        ];
+
+        if ($addCopies) {
+            $rules['copies'] = 'required|array|min:1';
+            $rules['copies.*.isbn'] = 'required|string|max:50|distinct|unique:book_copies,isbn';
+            $rules['copies.*.condition'] = 'required|in:excellent,good,fair,poor,damaged';
+            $rules['copies.*.condition_notes'] = 'nullable|string|max:500';
+        } else {
+            $rules['quantity'] = 'required|integer|min:1';
+        }
+
+        $request->validate($rules);
 
         $data = $request->only([
             'title', 'book_number', 'condition', 'condition_notes',
-            'author', 'isbn', 'category', 'quantity'
+            'author', 'isbn', 'category'
         ]);
 
-        $data['available_quantity'] = $request->quantity;
+        // Set quantity based on copies or manual input
+        if ($addCopies) {
+            $data['quantity'] = count($request->copies);
+            $data['available_quantity'] = count($request->copies);
+        } else {
+            $data['quantity'] = $request->quantity;
+            $data['available_quantity'] = $request->quantity;
+        }
+
         $data['added_by'] = auth()->id();
         $data['status'] = 'available';
 
@@ -397,10 +470,34 @@ class LibraryController extends Controller
             $data['image'] = 'uploads/books/' . $imageName;
         }
 
-        Book::create($data);
+        $book = Book::create($data);
+
+        // Create book copies if add_copies is checked
+        if ($addCopies && $request->copies) {
+            $copyNumber = 1;
+            foreach ($request->copies as $copyData) {
+                if (!empty($copyData['isbn'])) {
+                    BookCopy::create([
+                        'book_id' => $book->id,
+                        'isbn' => $copyData['isbn'],
+                        'copy_number' => $book->book_number . '-' . $copyNumber,
+                        'condition' => $copyData['condition'] ?? 'good',
+                        'condition_notes' => $copyData['condition_notes'] ?? null,
+                        'status' => 'available',
+                        'added_by' => auth()->id(),
+                    ]);
+                    $copyNumber++;
+                }
+            }
+        }
+
+        $message = 'Book added successfully!';
+        if ($addCopies) {
+            $message = "Book added with " . count($request->copies) . " copies!";
+        }
 
         return redirect()->route('admin.library.books')
-            ->with('success', 'Book added successfully!');
+            ->with('success', $message);
     }
 
     /**
