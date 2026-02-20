@@ -9,6 +9,7 @@ class ProductSaleItem extends Model
     protected $fillable = [
         'product_sale_id',
         'product_id',
+        'student_id',
         'product_name',
         'barcode',
         'quantity',
@@ -30,5 +31,10 @@ class ProductSaleItem extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function student()
+    {
+        return $this->belongsTo(Student::class);
     }
 }

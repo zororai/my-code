@@ -289,6 +289,9 @@ Route::group(['middleware' => ['auth','role_or_permission:Admin|sidebar-finance|
     Route::get('finance/products/pos', 'ProductController@pos')->name('finance.products.pos');
     Route::get('finance/products/find-by-barcode', 'ProductController@findByBarcode')->name('finance.products.find-by-barcode');
     Route::post('finance/products/process-sale', 'ProductController@processSale')->name('finance.products.process-sale');
+    Route::get('finance/products/search-students', 'ProductController@searchAllStudents')->name('finance.products.search-students');
+    Route::get('finance/products/student-purchases', 'ProductController@studentPurchases')->name('finance.products.student-purchases');
+    Route::get('finance/products/student-purchases/{id}', 'ProductController@studentPurchaseHistory')->name('finance.products.student-purchase-history');
     Route::get('finance/products/sales-history', 'ProductController@salesHistory')->name('finance.products.sales-history');
     Route::get('finance/products/sales/{id}/receipt', 'ProductController@saleReceipt')->name('finance.products.sale-receipt');
     Route::get('finance/products/{id}', 'ProductController@show')->name('finance.products.show');

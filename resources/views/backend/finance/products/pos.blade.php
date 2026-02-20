@@ -8,6 +8,7 @@
             <p class="text-gray-600">Scan barcode or search products to make a sale</p>
         </div>
         <div class="flex gap-2">
+            <a href="{{ route('finance.products.student-purchases') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Student Purchases</a>
             <a href="{{ route('finance.uniform-collections') }}" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">Uniform Collections</a>
             <a href="{{ route('finance.products.sales-history') }}" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Sales History</a>
             <a href="{{ route('finance.products') }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Back to Products</a>
@@ -238,6 +239,24 @@
     </div>
 </div>
 
+<!-- Student Search Modal for Cart Items -->
+<div id="itemStudentSearchModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-800">Attach Student to Item</h3>
+            <button onclick="closeStudentSearchModal()" class="text-gray-500 hover:text-gray-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <input type="text" id="itemStudentSearchInput" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4" placeholder="Search student by name or roll number..." onkeyup="searchItemStudent()">
+        <div id="itemStudentSearchResults" class="flex-1 overflow-y-auto border rounded-lg">
+            <p class="text-gray-500 text-center py-8">Type to search for students</p>
+        </div>
+    </div>
+</div>
+
 <!-- Success Modal -->
 <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
     <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
@@ -258,6 +277,8 @@
 <script>
 let cart = [];
 let lastSaleNumber = '';
+let cartStudentSearchTimeout = null;
+let editingStudentForItemId = null;
 
 document.getElementById('barcodeInput').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
@@ -285,7 +306,7 @@ function searchBarcode() {
 }
 
 function addToCart(id, name, price, stock, barcode) {
-    const existing = cart.find(item => item.id === id);
+    const existing = cart.find(item => item.id === id && !item.student_id);
     
     if (existing) {
         if (existing.quantity >= stock) {
@@ -294,7 +315,7 @@ function addToCart(id, name, price, stock, barcode) {
         }
         existing.quantity++;
     } else {
-        cart.push({ id, name, price, stock, barcode, quantity: 1 });
+        cart.push({ id, name, price, stock, barcode, quantity: 1, student_id: null, student_name: null, student_class: null });
     }
     
     updateCartDisplay();
@@ -323,6 +344,75 @@ function removeFromCart(id) {
     updateCartDisplay();
 }
 
+function removeFromCartByIndex(index) {
+    cart.splice(index, 1);
+    updateCartDisplay();
+}
+
+function openStudentSearchForItem(index) {
+    editingStudentForItemId = index;
+    document.getElementById('itemStudentSearchModal').classList.remove('hidden');
+    document.getElementById('itemStudentSearchInput').value = '';
+    document.getElementById('itemStudentSearchInput').focus();
+    document.getElementById('itemStudentSearchResults').innerHTML = '';
+}
+
+function closeStudentSearchModal() {
+    document.getElementById('itemStudentSearchModal').classList.add('hidden');
+    editingStudentForItemId = null;
+}
+
+function searchItemStudent() {
+    clearTimeout(cartStudentSearchTimeout);
+    const search = document.getElementById('itemStudentSearchInput').value.trim();
+    
+    if (search.length < 2) {
+        document.getElementById('itemStudentSearchResults').innerHTML = '<p class="text-gray-500 text-center py-4">Type at least 2 characters</p>';
+        return;
+    }
+    
+    cartStudentSearchTimeout = setTimeout(() => {
+        fetch('{{ route("finance.products.search-students") }}?search=' + encodeURIComponent(search))
+            .then(res => res.json())
+            .then(data => {
+                const container = document.getElementById('itemStudentSearchResults');
+                if (data.students.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-center py-4">No students found</p>';
+                } else {
+                    container.innerHTML = data.students.map(student => `
+                        <button type="button" onclick="selectStudentForItem(${student.id}, '${student.name.replace(/'/g, "\\'")}', '${student.class}')" 
+                            class="w-full flex items-center justify-between p-3 hover:bg-blue-50 text-left border-b last:border-b-0">
+                            <div>
+                                <div class="font-medium text-gray-900">${student.name}</div>
+                                <div class="text-sm text-gray-500">${student.roll_number} • ${student.class}</div>
+                            </div>
+                        </button>
+                    `).join('');
+                }
+            })
+            .catch(err => console.error('Search error:', err));
+    }, 300);
+}
+
+function selectStudentForItem(studentId, studentName, studentClass) {
+    if (editingStudentForItemId !== null && cart[editingStudentForItemId]) {
+        cart[editingStudentForItemId].student_id = studentId;
+        cart[editingStudentForItemId].student_name = studentName;
+        cart[editingStudentForItemId].student_class = studentClass;
+        updateCartDisplay();
+    }
+    closeStudentSearchModal();
+}
+
+function clearItemStudent(index) {
+    if (cart[index]) {
+        cart[index].student_id = null;
+        cart[index].student_name = null;
+        cart[index].student_class = null;
+        updateCartDisplay();
+    }
+}
+
 function clearCart() {
     cart = [];
     updateCartDisplay();
@@ -337,22 +427,38 @@ function updateCartDisplay() {
         container.innerHTML = '<p class="text-gray-500 text-center py-8" id="emptyCartMessage">No items in cart</p>';
         checkoutBtn.disabled = true;
     } else {
-        container.innerHTML = cart.map(item => `
-            <div class="flex items-center justify-between bg-gray-50 p-2 rounded">
-                <div class="flex-1">
-                    <div class="font-medium text-sm">${item.name}</div>
-                    <div class="text-xs text-gray-500">$${item.price.toFixed(2)} each</div>
+        container.innerHTML = cart.map((item, index) => `
+            <div class="bg-gray-50 p-2 rounded mb-2">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <div class="font-medium text-sm">${item.name}</div>
+                        <div class="text-xs text-gray-500">$${item.price.toFixed(2)} each</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="updateQuantity(${item.id}, -1)" class="w-6 h-6 bg-gray-200 rounded hover:bg-gray-300">-</button>
+                        <span class="w-8 text-center">${item.quantity}</span>
+                        <button onclick="updateQuantity(${item.id}, 1)" class="w-6 h-6 bg-gray-200 rounded hover:bg-gray-300">+</button>
+                        <span class="w-16 text-right font-semibold">$${(item.price * item.quantity).toFixed(2)}</span>
+                        <button onclick="removeFromCartByIndex(${index})" class="text-red-500 hover:text-red-700 ml-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button onclick="updateQuantity(${item.id}, -1)" class="w-6 h-6 bg-gray-200 rounded hover:bg-gray-300">-</button>
-                    <span class="w-8 text-center">${item.quantity}</span>
-                    <button onclick="updateQuantity(${item.id}, 1)" class="w-6 h-6 bg-gray-200 rounded hover:bg-gray-300">+</button>
-                    <span class="w-16 text-right font-semibold">$${(item.price * item.quantity).toFixed(2)}</span>
-                    <button onclick="removeFromCart(${item.id})" class="text-red-500 hover:text-red-700 ml-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
+                <div class="mt-1 flex items-center gap-2">
+                    ${item.student_id ? `
+                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                            ${item.student_name}
+                            <button onclick="clearItemStudent(${index})" class="ml-1 text-blue-600 hover:text-blue-800">&times;</button>
+                        </span>
+                    ` : `
+                        <button onclick="openStudentSearchForItem(${index})" class="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                            Attach Student
+                        </button>
+                    `}
                 </div>
             </div>
         `).join('');
@@ -381,7 +487,7 @@ function processSale() {
     }
     
     const data = {
-        items: cart.map(item => ({ product_id: item.id, quantity: item.quantity })),
+        items: cart.map(item => ({ product_id: item.id, quantity: item.quantity, student_id: item.student_id })),
         amount_paid: amountPaid,
         payment_method: document.getElementById('paymentMethod').value,
         customer_name: document.getElementById('customerName').value || null,

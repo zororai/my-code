@@ -230,6 +230,7 @@ class ProductController extends Controller
                 'items' => 'required|array|min:1',
                 'items.*.product_id' => 'required|exists:products,id',
                 'items.*.quantity' => 'required|integer|min:1',
+                'items.*.student_id' => 'nullable|exists:students,id',
                 'amount_paid' => 'required|numeric|min:0',
                 'payment_method' => 'required|string',
             ]);
@@ -255,6 +256,7 @@ class ProductController extends Controller
                 'quantity' => $item['quantity'],
                 'unit_price' => $product->price,
                 'total_price' => $itemTotal,
+                'student_id' => $item['student_id'] ?? null,
             ];
         }
 
@@ -282,6 +284,7 @@ class ProductController extends Controller
             ProductSaleItem::create([
                 'product_sale_id' => $sale->id,
                 'product_id' => $item['product']->id,
+                'student_id' => $item['student_id'],
                 'product_name' => $item['product']->name,
                 'barcode' => $item['product']->barcode,
                 'quantity' => $item['quantity'],
@@ -708,5 +711,73 @@ class ProductController extends Controller
             });
 
         return response()->json(['students' => $students]);
+    }
+
+    public function studentPurchases(Request $request)
+    {
+        $query = ProductSaleItem::with(['sale', 'product', 'student.user', 'student.class'])
+            ->whereNotNull('student_id');
+
+        if ($request->student_id) {
+            $query->where('student_id', $request->student_id);
+        }
+
+        if ($request->search) {
+            $query->whereHas('student.user', function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%');
+            })->orWhereHas('student', function($q) use ($request) {
+                $q->where('roll_number', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        if ($request->date_from) {
+            $query->whereHas('sale', function($q) use ($request) {
+                $q->whereDate('sale_date', '>=', $request->date_from);
+            });
+        }
+
+        if ($request->date_to) {
+            $query->whereHas('sale', function($q) use ($request) {
+                $q->whereDate('sale_date', '<=', $request->date_to);
+            });
+        }
+
+        $purchases = $query->orderBy('created_at', 'desc')->paginate(20);
+
+        $students = Student::with('user')
+            ->whereHas('purchases')
+            ->get()
+            ->map(function($student) {
+                return [
+                    'id' => $student->id,
+                    'name' => $student->user->name ?? 'Unknown',
+                ];
+            });
+
+        $stats = [
+            'total_purchases' => ProductSaleItem::whereNotNull('student_id')->count(),
+            'total_amount' => ProductSaleItem::whereNotNull('student_id')->sum('total_price'),
+            'unique_students' => ProductSaleItem::whereNotNull('student_id')->distinct('student_id')->count('student_id'),
+        ];
+
+        return view('backend.finance.products.student-purchases', compact('purchases', 'students', 'stats'));
+    }
+
+    public function studentPurchaseHistory($id)
+    {
+        $student = Student::with(['user', 'class'])->findOrFail($id);
+        
+        $purchases = ProductSaleItem::with(['sale', 'product'])
+            ->where('student_id', $id)
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        $stats = [
+            'total_purchases' => $purchases->total(),
+            'total_amount' => ProductSaleItem::where('student_id', $id)->sum('total_price'),
+            'total_items' => ProductSaleItem::where('student_id', $id)->sum('quantity'),
+        ];
+
+        return view('backend.finance.products.student-purchase-history', compact('student', 'purchases', 'stats'));
     }
 }

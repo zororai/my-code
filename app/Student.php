@@ -72,4 +72,9 @@ class Student extends Model
     {
         return $this->hasMany(UniformCollection::class)->where('status', 'pending');
     }
+
+    public function purchases()
+    {
+        return $this->hasMany(ProductSaleItem::class);
+    }
 }
