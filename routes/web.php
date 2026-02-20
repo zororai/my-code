@@ -296,6 +296,13 @@ Route::group(['middleware' => ['auth','role_or_permission:Admin|sidebar-finance|
     Route::put('finance/products/{id}', 'ProductController@update')->name('finance.products.update');
     Route::post('finance/products/{id}/adjust-stock', 'ProductController@adjustStock')->name('finance.products.adjust-stock');
 
+    // Finance - Uniform Collections
+    Route::get('finance/uniform-collections', 'ProductController@uniformCollections')->name('finance.uniform-collections');
+    Route::get('finance/uniform-collections/search-student', 'ProductController@searchStudentForUniform')->name('finance.uniform-collections.search-student');
+    Route::get('finance/uniform-collections/student/{id}', 'ProductController@studentUniformHistory')->name('finance.uniform-collections.student');
+    Route::post('finance/uniform-collections/record', 'ProductController@recordUniformCollection')->name('finance.uniform-collections.record');
+    Route::post('finance/uniform-collections/{id}/mark-collected', 'ProductController@markUniformCollected')->name('finance.uniform-collections.mark-collected');
+
     // Finance - Expenses
     Route::get('admin/finance/expenses', 'ExpenseController@index')->name('admin.finance.expenses.index');
     Route::get('admin/finance/expenses/create', 'ExpenseController@create')->name('admin.finance.expenses.create');

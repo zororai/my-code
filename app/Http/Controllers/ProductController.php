@@ -10,6 +10,8 @@ use App\StockMovement;
 use App\SchoolIncome;
 use App\CashBookEntry;
 use App\ProductCategory;
+use App\UniformCollection;
+use App\Student;
 
 class ProductController extends Controller
 {
@@ -481,5 +483,167 @@ class ProductController extends Controller
 
         return redirect()->route('finance.categories.index')
             ->with('success', 'Category deleted successfully.');
+    }
+
+    public function uniformCollections(Request $request)
+    {
+        $query = UniformCollection::with(['student.user', 'student.class', 'product', 'collector']);
+
+        if ($request->status) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->search) {
+            $query->whereHas('student.user', function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%');
+            })->orWhereHas('student', function($q) use ($request) {
+                $q->where('roll_number', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        $collections = $query->orderBy('created_at', 'desc')->paginate(20);
+
+        $pendingCount = UniformCollection::where('status', 'pending')->count();
+        $collectedCount = UniformCollection::where('status', 'collected')->count();
+
+        return view('backend.finance.uniform-collections.index', compact('collections', 'pendingCount', 'collectedCount'));
+    }
+
+    public function searchStudentForUniform(Request $request)
+    {
+        $search = $request->search;
+
+        $students = Student::with(['user', 'class'])
+            ->where('is_new_student', true)
+            ->where(function($q) use ($search) {
+                $q->whereHas('user', function($query) use ($search) {
+                    $query->where('name', 'like', '%' . $search . '%');
+                })->orWhere('roll_number', 'like', '%' . $search . '%');
+            })
+            ->limit(10)
+            ->get()
+            ->map(function($student) {
+                $pendingUniforms = $student->pendingUniformCollections()->count();
+                return [
+                    'id' => $student->id,
+                    'name' => $student->user->name ?? 'Unknown',
+                    'roll_number' => $student->roll_number,
+                    'class' => $student->class->class_name ?? 'N/A',
+                    'is_new_student' => $student->is_new_student,
+                    'pending_uniforms' => $pendingUniforms,
+                ];
+            });
+
+        return response()->json(['students' => $students]);
+    }
+
+    public function studentUniformHistory($id)
+    {
+        $student = Student::with(['user', 'class'])->findOrFail($id);
+        $pendingCollections = UniformCollection::where('student_id', $id)
+            ->where('status', 'pending')
+            ->with('product')
+            ->get();
+        $collectedItems = UniformCollection::where('student_id', $id)
+            ->where('status', 'collected')
+            ->with(['product', 'collector'])
+            ->orderBy('collected_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'student' => [
+                'id' => $student->id,
+                'name' => $student->user->name ?? 'Unknown',
+                'roll_number' => $student->roll_number,
+                'class' => $student->class->class_name ?? 'N/A',
+                'is_new_student' => $student->is_new_student,
+            ],
+            'pending' => $pendingCollections,
+            'collected' => $collectedItems,
+        ]);
+    }
+
+    public function recordUniformCollection(Request $request)
+    {
+        $request->validate([
+            'student_id' => 'required|exists:students,id',
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.size' => 'nullable|string',
+        ]);
+
+        $student = Student::findOrFail($request->student_id);
+        $collections = [];
+
+        foreach ($request->items as $item) {
+            $product = Product::findOrFail($item['product_id']);
+
+            if ($product->quantity < $item['quantity']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Insufficient stock for ' . $product->name
+                ], 400);
+            }
+
+            $totalPrice = $product->price * $item['quantity'];
+
+            $collection = UniformCollection::create([
+                'student_id' => $student->id,
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'size' => $item['size'] ?? null,
+                'quantity' => $item['quantity'],
+                'unit_price' => $product->price,
+                'total_price' => $totalPrice,
+                'status' => 'collected',
+                'collected_at' => now(),
+                'collected_by' => auth()->id(),
+                'notes' => $request->notes ?? null,
+            ]);
+
+            $stockBefore = $product->quantity;
+            $product->quantity -= $item['quantity'];
+            $product->save();
+
+            StockMovement::create([
+                'product_id' => $product->id,
+                'type' => 'out',
+                'quantity' => $item['quantity'],
+                'stock_before' => $stockBefore,
+                'stock_after' => $product->quantity,
+                'reason' => 'Uniform Collection: ' . ($student->user->name ?? 'Student #' . $student->id),
+                'reference' => 'UC-' . $collection->id,
+                'created_by' => auth()->id(),
+            ]);
+
+            $collections[] = $collection;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Uniform collection recorded successfully',
+            'collections' => $collections,
+        ]);
+    }
+
+    public function markUniformCollected($id)
+    {
+        $collection = UniformCollection::findOrFail($id);
+
+        if ($collection->status === 'collected') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This uniform has already been collected'
+            ], 400);
+        }
+
+        $collection->markAsCollected();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Uniform marked as collected',
+            'collection' => $collection->load(['student.user', 'collector']),
+        ]);
     }
 }
