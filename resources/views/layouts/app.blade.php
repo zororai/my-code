@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Laravel') }}</title>
+    <title>{{ \App\WebsiteSetting::get('school_name', config('app.name', 'Laravel')) }}</title>
 
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0f172a">

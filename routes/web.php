@@ -16,6 +16,8 @@ Route::get('/', function () {
     return redirect('/' . $landingPage);
 });
 
+// Dynamic PWA manifest
+Route::get('/manifest.json', 'ManifestController@manifest')->name('manifest');
 
 Route::get('/logins','UserController@login')->name('login');
 
