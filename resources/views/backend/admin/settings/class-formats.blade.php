@@ -8,12 +8,20 @@
             <h1 class="text-2xl font-bold text-gray-900">Class Formats</h1>
             <p class="text-gray-600 mt-1">Define the naming format and structure of classes in your school</p>
         </div>
-        <button onclick="showAddModal()" class="mt-4 md:mt-0 inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg shadow-md hover:from-blue-700 hover:to-indigo-700 transition-all">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-            </svg>
-            Add Class Format
-        </button>
+        <div class="flex gap-3">
+            <button onclick="showBulkModal()" class="mt-4 md:mt-0 inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-lg shadow-md hover:from-green-700 hover:to-emerald-700 transition-all">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Bulk Add Classes
+            </button>
+            <button onclick="showAddModal()" class="mt-4 md:mt-0 inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg shadow-md hover:from-blue-700 hover:to-indigo-700 transition-all">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Add Class Format
+            </button>
+        </div>
     </div>
 
     @if(session('success'))
@@ -233,6 +241,118 @@
     </div>
 </div>
 
+<!-- Bulk Add Classes Modal -->
+<div id="bulkModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+        <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onclick="hideBulkModal()"></div>
+        
+        <div class="relative inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-6xl sm:w-full sm:p-6">
+            <div class="absolute top-0 right-0 pt-4 pr-4">
+                <button type="button" onclick="hideBulkModal()" class="text-gray-400 hover:text-gray-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div>
+                <h3 class="text-lg font-medium leading-6 text-gray-900 mb-2">Bulk Add Classes</h3>
+                <p class="text-sm text-gray-500 mb-4">Select grade levels and configure their class names</p>
+                
+                <form action="{{ route('admin.settings.class-formats.bulk-store') }}" method="POST" id="bulkForm">
+                    @csrf
+                    
+                    <div class="grid grid-cols-12 gap-4">
+                        <!-- Left Side: Grade Level List -->
+                        <div class="col-span-3 border-r pr-4">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Select Grade Levels</h4>
+                            <div class="space-y-2 max-h-96 overflow-y-auto">
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                    <input type="checkbox" class="grade-checkbox h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" value="ECD A" data-numeric="0">
+                                    <span class="ml-2 text-sm text-gray-700">ECD A</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                    <input type="checkbox" class="grade-checkbox h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" value="ECD B" data-numeric="1">
+                                    <span class="ml-2 text-sm text-gray-700">ECD B</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                    <input type="checkbox" class="grade-checkbox h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" value="Grade 1" data-numeric="2">
+                                    <span class="ml-2 text-sm text-gray-700">Grade 1</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                    <input type="checkbox" class="grade-checkbox h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" value="Grade 2" data-numeric="3">
+                                    <span class="ml-2 text-sm text-gray-700">Grade 2</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                    <input type="checkbox" class="grade-checkbox h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" value="Grade 3" data-numeric="4">
+                                    <span class="ml-2 text-sm text-gray-700">Grade 3</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                    <input type="checkbox" class="grade-checkbox h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" value="Grade 4" data-numeric="5">
+                                    <span class="ml-2 text-sm text-gray-700">Grade 4</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                    <input type="checkbox" class="grade-checkbox h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" value="Grade 5" data-numeric="6">
+                                    <span class="ml-2 text-sm text-gray-700">Grade 5</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                    <input type="checkbox" class="grade-checkbox h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" value="Grade 6" data-numeric="7">
+                                    <span class="ml-2 text-sm text-gray-700">Grade 6</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                    <input type="checkbox" class="grade-checkbox h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" value="Grade 7" data-numeric="8">
+                                    <span class="ml-2 text-sm text-gray-700">Grade 7</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                    <input type="checkbox" class="grade-checkbox h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" value="Form 1" data-numeric="9">
+                                    <span class="ml-2 text-sm text-gray-700">Form 1</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                    <input type="checkbox" class="grade-checkbox h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" value="Form 2" data-numeric="10">
+                                    <span class="ml-2 text-sm text-gray-700">Form 2</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                    <input type="checkbox" class="grade-checkbox h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" value="Form 3" data-numeric="11">
+                                    <span class="ml-2 text-sm text-gray-700">Form 3</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                    <input type="checkbox" class="grade-checkbox h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" value="Form 4" data-numeric="12">
+                                    <span class="ml-2 text-sm text-gray-700">Form 4</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                    <input type="checkbox" class="grade-checkbox h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" value="Form 5" data-numeric="13">
+                                    <span class="ml-2 text-sm text-gray-700">Form 5</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                    <input type="checkbox" class="grade-checkbox h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" value="Form 6" data-numeric="14">
+                                    <span class="ml-2 text-sm text-gray-700">Form 6</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Right Side: Configuration for Selected Grades -->
+                        <div class="col-span-9">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Configure Selected Grades</h4>
+                            <div id="gradeConfigContainer" class="space-y-4 max-h-96 overflow-y-auto">
+                                <p class="text-sm text-gray-500 text-center py-8">Select grade levels from the left to configure</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end gap-3 border-t pt-4">
+                        <button type="button" onclick="hideBulkModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            Cancel
+                        </button>
+                        <button type="submit" id="bulkSubmitBtn" class="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            Create All Classes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Edit Class Format Modal -->
 <div id="editModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
@@ -308,6 +428,14 @@ function hideAddModal() {
     document.getElementById('addModal').classList.add('hidden');
 }
 
+function showBulkModal() {
+    document.getElementById('bulkModal').classList.remove('hidden');
+}
+
+function hideBulkModal() {
+    document.getElementById('bulkModal').classList.add('hidden');
+}
+
 function showEditModal(format) {
     document.getElementById('editForm').action = '{{ url("admin/settings/class-formats") }}/' + format.id;
     document.getElementById('edit_format_name').value = format.format_name;
@@ -321,5 +449,285 @@ function showEditModal(format) {
 function hideEditModal() {
     document.getElementById('editModal').classList.add('hidden');
 }
+
+// Bulk modal functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const gradeCheckboxes = document.querySelectorAll('.grade-checkbox');
+    const configContainer = document.getElementById('gradeConfigContainer');
+    const bulkForm = document.getElementById('bulkForm');
+    
+    // Store templates data from server
+    const templates = @json($formatTemplates);
+    
+    gradeCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateGradeConfigs();
+        });
+    });
+    
+    // Form validation before submission
+    bulkForm.addEventListener('submit', function(e) {
+        const selectedGrades = Array.from(gradeCheckboxes).filter(cb => cb.checked);
+        
+        if (selectedGrades.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one grade level from the left.');
+            return false;
+        }
+        
+        // Check each grade has at least one class name selected
+        let hasError = false;
+        selectedGrades.forEach(gradeCheckbox => {
+            const gradeName = gradeCheckbox.value;
+            const classNameCheckboxes = document.querySelectorAll(`input[name="grades[${gradeName}][class_names][]"]`);
+            const hasClassNames = Array.from(classNameCheckboxes).some(cb => cb.checked);
+            
+            if (!hasClassNames) {
+                hasError = true;
+                alert(`Please select at least one class name for ${gradeName}`);
+                return false;
+            }
+        });
+        
+        if (hasError) {
+            e.preventDefault();
+            return false;
+        }
+    });
+    
+    function updateGradeConfigs() {
+        const selectedGrades = Array.from(gradeCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => ({
+                name: cb.value,
+                numeric: cb.dataset.numeric
+            }));
+        
+        if (selectedGrades.length === 0) {
+            configContainer.innerHTML = '<p class="text-sm text-gray-500 text-center py-8">Select grade levels from the left to configure</p>';
+            return;
+        }
+        
+        configContainer.innerHTML = selectedGrades.map(grade => `
+            <div class="border rounded-lg p-4 bg-gray-50">
+                <h5 class="font-semibold text-gray-800 mb-3">${grade.name}</h5>
+                
+                <div class="grid grid-cols-2 gap-4 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Numeric Value</label>
+                        <input type="number" name="grades[${grade.name}][numeric_value]" value="${grade.numeric}" min="0" required
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Select Template</label>
+                        <select class="template-selector w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" data-grade="${grade.name}">
+                            <option value="">Choose a template...</option>
+                            ${templates.map(t => `<option value="${t.id}" data-type="${t.type}" data-values="${t.values}">${t.name}</option>`).join('')}
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Select a saved template or it will use default</p>
+                    </div>
+                </div>
+                
+                <div class="names-section-${grade.name}" data-grade-section="${grade.name}">
+                    <label class="block text-xs font-medium text-gray-700 mb-2">Class Names</label>
+                    <div class="grid grid-cols-3 gap-2 mb-2" data-checkbox-container="${grade.name}">
+                        <label class="flex items-center p-2 border rounded hover:bg-white text-xs">
+                            <input type="checkbox" name="grades[${grade.name}][class_names][]" value="Blue" class="h-3 w-3 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                            <span class="ml-2 text-gray-700">Blue</span>
+                        </label>
+                        <label class="flex items-center p-2 border rounded hover:bg-white text-xs">
+                            <input type="checkbox" name="grades[${grade.name}][class_names][]" value="White" class="h-3 w-3 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                            <span class="ml-2 text-gray-700">White</span>
+                        </label>
+                        <label class="flex items-center p-2 border rounded hover:bg-white text-xs">
+                            <input type="checkbox" name="grades[${grade.name}][class_names][]" value="Green" class="h-3 w-3 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                            <span class="ml-2 text-gray-700">Green</span>
+                        </label>
+                        <label class="flex items-center p-2 border rounded hover:bg-white text-xs">
+                            <input type="checkbox" name="grades[${grade.name}][class_names][]" value="Red" class="h-3 w-3 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                            <span class="ml-2 text-gray-700">Red</span>
+                        </label>
+                        <label class="flex items-center p-2 border rounded hover:bg-white text-xs">
+                            <input type="checkbox" name="grades[${grade.name}][class_names][]" value="Yellow" class="h-3 w-3 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                            <span class="ml-2 text-gray-700">Yellow</span>
+                        </label>
+                        <label class="flex items-center p-2 border rounded hover:bg-white text-xs">
+                            <input type="checkbox" name="grades[${grade.name}][class_names][]" value="Orange" class="h-3 w-3 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                            <span class="ml-2 text-gray-700">Orange</span>
+                        </label>
+                    </div>
+                    <input type="text" placeholder="Type custom name and press Enter" 
+                        class="custom-class-input w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        data-grade="${grade.name}">
+                </div>
+                
+                <div class="numeric-section-${grade.name} hidden">
+                    <label class="block text-xs font-medium text-gray-700 mb-2">Number of Classes</label>
+                    <input type="number" class="numeric-count w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" 
+                        min="1" max="20" value="3" placeholder="e.g., 3 for 1.1, 1.2, 1.3"
+                        data-grade="${grade.name}">
+                    <p class="text-xs text-gray-500 mt-1">This will create ${grade.name}.1, ${grade.name}.2, etc.</p>
+                </div>
+                
+                <div class="custom-section-${grade.name} hidden">
+                    <label class="block text-xs font-medium text-gray-700 mb-2">Enter Class Names</label>
+                    <textarea class="custom-format-input w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" 
+                        rows="3" placeholder="Enter class names separated by commas, e.g., A, B, C, D or Alpha, Beta, Gamma"
+                        data-grade="${grade.name}"></textarea>
+                    <p class="text-xs text-gray-500 mt-1">Separate each class name with a comma. Example: A, B, C, D</p>
+                </div>
+            </div>
+        `).join('');
+        
+        // Attach event listeners after HTML is created
+        attachTemplateListeners();
+        attachCustomInputListeners();
+    }
+    
+    function attachTemplateListeners() {
+        // Add event listeners for template selection
+        document.querySelectorAll('.template-selector').forEach(select => {
+            select.addEventListener('change', function() {
+                const gradeName = this.dataset.grade;
+                const selectedOption = this.options[this.selectedIndex];
+                const templateType = selectedOption.dataset.type;
+                const templateValues = selectedOption.dataset.values;
+                
+                // Clear all existing selections for this grade
+                document.querySelectorAll(`input[name="grades[${gradeName}][class_names][]"]`).forEach(el => {
+                    if (el.type === 'checkbox') {
+                        el.checked = false;
+                    } else if (el.type === 'hidden' && (el.dataset.numeric === 'true' || el.dataset.custom === 'true')) {
+                        el.remove();
+                    }
+                });
+                
+                // Remove any previously added custom checkboxes
+                const namesSection = document.querySelector(`[data-grade-section="${gradeName}"]`);
+                if (!namesSection) {
+                    console.error('Names section not found for grade:', gradeName);
+                    return;
+                }
+                const checkboxContainer = document.querySelector(`[data-checkbox-container="${gradeName}"]`);
+                if (!checkboxContainer) {
+                    console.error('Checkbox container not found for grade:', gradeName);
+                    return;
+                }
+                checkboxContainer.querySelectorAll('[data-custom-checkbox="true"]').forEach(el => el.remove());
+                
+                if (!templateType || !templateValues) return;
+                
+                // Apply template based on type
+                if (templateType === 'numeric') {
+                    // Generate numeric classes as hidden inputs
+                    const count = parseInt(templateValues);
+                    for (let i = 1; i <= count; i++) {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = `grades[${gradeName}][class_names][]`;
+                        input.value = `.${i}`;
+                        input.setAttribute('data-numeric', 'true');
+                        namesSection.appendChild(input);
+                    }
+                    
+                    // Show visual feedback
+                    const customInput = namesSection.querySelector('.custom-class-input');
+                    customInput.value = `Will create: ${gradeName}.1, ${gradeName}.2, ${gradeName}.3...`;
+                    customInput.disabled = true;
+                    setTimeout(() => {
+                        customInput.value = '';
+                        customInput.disabled = false;
+                    }, 2000);
+                } else {
+                    // For names and custom types
+                    const classNames = templateValues.split(',').map(name => name.trim());
+                    classNames.forEach(className => {
+                        // Try to find matching checkbox
+                        const checkbox = document.querySelector(`input[name="grades[${gradeName}][class_names][]"][value="${className}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        } else {
+                            // Create visible checkbox for custom names
+                            const label = document.createElement('label');
+                            label.className = 'flex items-center p-2 border rounded hover:bg-white text-xs';
+                            label.setAttribute('data-custom-checkbox', 'true');
+                            label.innerHTML = `
+                                <input type="checkbox" name="grades[${gradeName}][class_names][]" value=" ${className}" checked class="h-3 w-3 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                                <span class="ml-2 text-gray-700">${className}</span>
+                            `;
+                            checkboxContainer.appendChild(label);
+                        }
+                    });
+                }
+            });
+        });
+        
+    }
+    
+    function attachCustomInputListeners() {
+        // Add event listeners for custom class inputs
+        document.querySelectorAll('.custom-class-input').forEach(input => {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const customName = this.value.trim();
+                    const gradeName = this.dataset.grade;
+                    if (customName) {
+                        const container = this.previousElementSibling;
+                        const label = document.createElement('label');
+                        label.className = 'flex items-center p-2 border rounded hover:bg-white text-xs';
+                        label.innerHTML = `
+                            <input type="checkbox" name="grades[${gradeName}][class_names][]" value="${customName}" checked class="h-3 w-3 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                            <span class="ml-2 text-gray-700">${customName}</span>
+                        `;
+                        container.appendChild(label);
+                        this.value = '';
+                    }
+                }
+            });
+        });
+    }
+    
+    function generateNumericClasses(gradeName) {
+        // Remove existing numeric inputs for this grade
+        document.querySelectorAll(`input[name="grades[${gradeName}][class_names][]"][data-numeric="true"]`).forEach(el => el.remove());
+        
+        const countInput = document.querySelector(`.numeric-count[data-grade="${gradeName}"]`);
+        const count = parseInt(countInput.value) || 3;
+        const numericSection = document.querySelector(`.numeric-section-${gradeName.replace(/\s+/g, '\\ ')}`);
+        
+        // Create hidden inputs for numeric classes
+        for (let i = 1; i <= count; i++) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = `grades[${gradeName}][class_names][]`;
+            input.value = `.${i}`;
+            input.setAttribute('data-numeric', 'true');
+            numericSection.appendChild(input);
+        }
+    }
+    
+    function generateCustomClasses(gradeName, inputValue) {
+        // Remove existing custom inputs for this grade
+        document.querySelectorAll(`input[name="grades[${gradeName}][class_names][]"][data-custom="true"]`).forEach(el => el.remove());
+        
+        const customSection = document.querySelector(`.custom-section-${gradeName.replace(/\s+/g, '\\ ')}`);
+        
+        // Parse comma-separated values
+        const classNames = inputValue.split(',')
+            .map(name => name.trim())
+            .filter(name => name.length > 0);
+        
+        // Create hidden inputs for each class name
+        classNames.forEach(className => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = `grades[${gradeName}][class_names][]`;
+            input.value = ` ${className}`;
+            input.setAttribute('data-custom', 'true');
+            customSection.appendChild(input);
+        });
+    }
+});
 </script>
 @endsection

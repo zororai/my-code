@@ -18,8 +18,9 @@ class SchoolSettingsController extends Controller
     {
         $classFormats = ClassFormat::ordered()->get();
         $existingClasses = Grade::orderBy('class_numeric')->get();
+        $formatTemplates = \App\ClassFormatTemplate::active()->get();
         
-        return view('backend.admin.settings.class-formats', compact('classFormats', 'existingClasses'));
+        return view('backend.admin.settings.class-formats', compact('classFormats', 'existingClasses', 'formatTemplates'));
     }
 
     public function storeClassFormat(Request $request)
@@ -65,6 +66,44 @@ class SchoolSettingsController extends Controller
 
         return redirect()->route('admin.settings.class-formats')
             ->with('success', 'Class format deleted successfully!');
+    }
+
+    public function bulkStoreClassFormats(Request $request)
+    {
+        $validated = $request->validate([
+            'grades' => 'required|array|min:1',
+            'grades.*.numeric_value' => 'required|integer|min:0',
+            'grades.*.class_names' => 'required|array|min:1',
+            'grades.*.class_names.*' => 'required|string',
+        ]);
+
+        $createdCount = 0;
+        $sortOrder = ClassFormat::max('sort_order') ?? 0;
+
+        foreach ($validated['grades'] as $gradeLevel => $gradeData) {
+            $numericValue = $gradeData['numeric_value'];
+            $classNames = $gradeData['class_names'];
+            
+            foreach ($classNames as $className) {
+                $sortOrder++;
+                $formatName = $gradeLevel . ' ' . $className;
+                
+                // Check if already exists
+                if (!ClassFormat::where('format_name', $formatName)->exists()) {
+                    ClassFormat::create([
+                        'format_name' => $formatName,
+                        'numeric_value' => $numericValue,
+                        'display_name' => $formatName,
+                        'sort_order' => $sortOrder,
+                        'is_active' => true,
+                    ]);
+                    $createdCount++;
+                }
+            }
+        }
+
+        return redirect()->route('admin.settings.class-formats')
+            ->with('success', "Successfully created {$createdCount} class format(s)!");
     }
 
     public function upgradeDirection()

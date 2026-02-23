@@ -509,6 +509,7 @@ Route::group(['middleware' => ['auth','role_or_permission:Admin|sidebar-finance|
     // School Settings Routes
     Route::get('/admin/settings/class-formats', 'SchoolSettingsController@classFormats')->name('admin.settings.class-formats');
     Route::post('/admin/settings/class-formats', 'SchoolSettingsController@storeClassFormat')->name('admin.settings.class-formats.store');
+    Route::post('/admin/settings/class-formats/bulk', 'SchoolSettingsController@bulkStoreClassFormats')->name('admin.settings.class-formats.bulk-store');
     Route::put('/admin/settings/class-formats/{id}', 'SchoolSettingsController@updateClassFormat')->name('admin.settings.class-formats.update');
     Route::delete('/admin/settings/class-formats/{id}', 'SchoolSettingsController@deleteClassFormat')->name('admin.settings.class-formats.delete');
     Route::get('/admin/settings/upgrade-direction', 'SchoolSettingsController@upgradeDirection')->name('admin.settings.upgrade-direction');
