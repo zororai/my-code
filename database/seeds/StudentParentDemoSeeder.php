@@ -1,7 +1,5 @@
 <?php
 
-namespace Database\Seeders;
-
 use Illuminate\Database\Seeder;
 use App\User;
 use App\Student;
@@ -137,6 +135,13 @@ class StudentParentDemoSeeder extends Seeder
         foreach ($demoStudents as $index => $studentData) {
             // Generate roll number
             $rollNumber = 'RSH' . str_pad($index + 1001, 4, '0', STR_PAD_LEFT);
+            $studentEmail = strtolower($rollNumber) . '@roshs.co.zw';
+            
+            // Skip if student already exists
+            if (User::where('email', $studentEmail)->exists()) {
+                $this->command->info("Skipping existing student: {$studentData['name']} (Roll: {$rollNumber})");
+                continue;
+            }
             
             // Create student user
             $studentUser = User::create([
