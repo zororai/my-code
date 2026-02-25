@@ -130,6 +130,14 @@
     </div>
 </div>
 
+{{-- Individual delete forms - placed outside the bulk delete form --}}
+@foreach($topics as $topic)
+<form id="deleteForm{{ $topic->id }}" action="{{ route('teacher.syllabus.destroy', $topic->id) }}" method="POST" style="display: none;">
+    @csrf
+    @method('DELETE')
+</form>
+@endforeach
+
 <script>
 function toggleAll(source) {
     const checkboxes = document.querySelectorAll('.topic-checkbox');
@@ -171,35 +179,17 @@ function bulkDelete() {
 
 // Handle individual delete
 function deleteTopic(topicId) {
-    console.log('Delete clicked for topic:', topicId);
-    
     if (!confirm('Are you sure you want to delete this topic?')) {
         return;
     }
     
-    // Create and submit a form for delete
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/teacher/syllabus/' + topicId;
-    form.style.display = 'none';
-    
-    console.log('Form action:', form.action);
-    
-    const csrfToken = document.createElement('input');
-    csrfToken.type = 'hidden';
-    csrfToken.name = '_token';
-    csrfToken.value = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
-    form.appendChild(csrfToken);
-    
-    const methodField = document.createElement('input');
-    methodField.type = 'hidden';
-    methodField.name = '_method';
-    methodField.value = 'DELETE';
-    form.appendChild(methodField);
-    
-    document.body.appendChild(form);
-    console.log('Submitting form...');
-    form.submit();
+    // Submit the pre-rendered form
+    var form = document.getElementById('deleteForm' + topicId);
+    if (form) {
+        form.submit();
+    } else {
+        alert('Delete form not found for topic ' + topicId);
+    }
 }
 </script>
 @endsection

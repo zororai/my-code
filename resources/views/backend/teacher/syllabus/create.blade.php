@@ -28,25 +28,26 @@
         </div>
     @endif
 
-    <!-- PDF Import Section -->
-    <div class="mb-6 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl shadow-sm border border-purple-200 p-6">
-        <div class="flex items-start space-x-4">
-            <div class="flex-shrink-0">
-                <svg class="w-10 h-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                </svg>
-            </div>
-            <div class="flex-1">
-                <h3 class="text-lg font-bold text-gray-900 mb-2">Import Structured Syllabus from PDF</h3>
-                <p class="text-sm text-gray-600 mb-4">Upload a structured PDF syllabus document to automatically extract topics with learning objectives, content, activities, and resources.</p>
-                
-                <form action="{{ route('teacher.syllabus.import') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
-                    @csrf
+    <!-- PDF Import Sections -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- ZIMSEC Import -->
+        <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl shadow-sm border border-purple-200 p-6">
+            <div class="flex items-start space-x-3">
+                <div class="flex-shrink-0">
+                    <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-lg font-bold text-gray-900 mb-1">ZIMSEC Syllabus Import</h3>
+                    <p class="text-xs text-gray-600 mb-3">Import Ministry/ZIMSEC structured syllabus</p>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <form action="{{ route('teacher.syllabus.import') }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+                        @csrf
+                        
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Subject *</label>
-                            <select name="subject_id" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Subject *</label>
+                            <select name="subject_id" required class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
                                 <option value="">Select Subject</option>
                                 @foreach($subjects as $subject)
                                     <option value="{{ $subject->id }}">{{ $subject->subject_code }} - {{ $subject->name }}</option>
@@ -55,30 +56,94 @@
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">PDF File *</label>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">PDF File *</label>
                             <input type="file" name="pdf_file" accept=".pdf" required 
-                                   class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+                                   class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
                         </div>
-                    </div>
+                        
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-gray-700">
+                            <strong class="text-blue-900">Required Format:</strong>
+                            <ul class="mt-1 ml-3 list-disc space-y-0.5 text-xs">
+                                <li><strong>FORM 1-4</strong> markers</li>
+                                <li><strong>TOPIC</strong> sections</li>
+                                <li><strong>LEARNING OBJECTIVES</strong>, <strong>CONTENT</strong>, <strong>ACTIVITIES</strong>, <strong>RESOURCES</strong></li>
+                            </ul>
+                        </div>
+                        
+                        <div class="flex justify-end pt-1">
+                            <button type="submit" class="inline-flex items-center px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg shadow transition-colors">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                                Import ZIMSEC
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cambridge Import -->
+        <div class="bg-gradient-to-r from-green-50 to-teal-50 rounded-xl shadow-sm border border-green-200 p-6">
+            <div class="flex items-start space-x-3">
+                <div class="flex-shrink-0">
+                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-lg font-bold text-gray-900 mb-1">Cambridge IGCSE Import</h3>
+                    <p class="text-xs text-gray-600 mb-3">Import Cambridge IGCSE syllabus</p>
                     
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-gray-700">
-                        <strong class="text-blue-900">Required PDF Format:</strong>
-                        <ul class="mt-1 ml-4 list-disc space-y-1">
-                            <li>Must contain <strong>FORM 1</strong>, <strong>FORM 2</strong>, <strong>FORM 3</strong>, or <strong>FORM 4</strong> markers</li>
-                            <li>Each topic must start with <strong>TOPIC</strong> (e.g., "TOPIC 1:", "TOPIC 2:")</li>
-                            <li>Sections: <strong>LEARNING OBJECTIVES</strong>, <strong>CONTENT</strong>, <strong>SUGGESTED ACTIVITIES</strong>, <strong>SUGGESTED RESOURCES</strong></li>
-                        </ul>
-                    </div>
-                    
-                    <div class="flex items-center justify-end pt-2">
-                        <button type="submit" class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg shadow transition-colors">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                            </svg>
-                            Import from PDF
-                        </button>
-                    </div>
-                </form>
+                    <form action="{{ route('teacher.syllabus.import-cambridge') }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+                        @csrf
+                        
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Subject *</label>
+                            <select name="subject_id" required class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                <option value="">Select Subject</option>
+                                @foreach($subjects as $subject)
+                                    <option value="{{ $subject->id }}">{{ $subject->subject_code }} - {{ $subject->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Term *</label>
+                            <select name="term" required class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                <option value="Term 1">Term 1</option>
+                                <option value="Term 2">Term 2</option>
+                                <option value="Term 3">Term 3</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">PDF File *</label>
+                            <input type="file" name="pdf_file" accept=".pdf" required 
+                                   class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                        </div>
+                        
+                        <div class="bg-teal-50 border border-teal-200 rounded-lg p-2 text-xs text-gray-700">
+                            <strong class="text-teal-900">Required Format:</strong>
+                            <ul class="mt-1 ml-3 list-disc space-y-0.5 text-xs">
+                                <li><strong>3 Subject content</strong> section</li>
+                                <li>Numbered sections (1, 2, 3...)</li>
+                                <li>Subsections (1.1, 1.2, 2.1...)</li>
+                                <li><strong>Candidates should be able to:</strong></li>
+                                <li><strong>Notes and guidance</strong></li>
+                            </ul>
+                        </div>
+                        
+                        <div class="flex justify-end pt-1">
+                            <button type="submit" class="inline-flex items-center px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg shadow transition-colors">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                                Import Cambridge
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

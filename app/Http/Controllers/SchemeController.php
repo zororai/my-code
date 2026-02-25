@@ -167,6 +167,205 @@ class SchemeController extends Controller
     }
 
     /**
+     * Generate printable version of scheme
+     */
+    public function print($id)
+    {
+        $teacher = auth()->user()->teacher;
+
+        if (!$teacher) {
+            return redirect()->route('home')->with('error', 'Teacher profile not found.');
+        }
+
+        $scheme = SchemeOfWork::with([
+            'subject',
+            'class',
+            'teacher.user',
+            'schemeTopics.syllabusTopic'
+        ])->findOrFail($id);
+
+        // Authorization check
+        if ($scheme->teacher_id !== $teacher->id) {
+            abort(403, 'Unauthorized access to this scheme.');
+        }
+
+        // Get school information
+        $schoolName = \App\SchoolSetting::get('school_name', 'School Name');
+        $schoolAddress = \App\SchoolSetting::get('school_address', '');
+        $schoolLogo = \App\SchoolSetting::get('school_logo', '');
+
+        return view('backend.teacher.schemes.print', compact(
+            'scheme',
+            'schoolName',
+            'schoolAddress',
+            'schoolLogo'
+        ));
+    }
+
+    /**
+     * Auto-generate scheme based on weak assessment performance
+     */
+    public function autoGenerateFromAssessments(Request $request)
+    {
+        $teacher = auth()->user()->teacher;
+
+        if (!$teacher) {
+            return response()->json(['success' => false, 'message' => 'Teacher profile not found.'], 403);
+        }
+
+        $classId = $request->get('class_id');
+        $subjectId = $request->get('subject_id');
+        $term = $request->get('term', 'Term 1');
+
+        if (!$classId || !$subjectId) {
+            return response()->json(['success' => false, 'message' => 'Class and subject are required.'], 400);
+        }
+
+        // Get all syllabus topics for this subject
+        $syllabusTopics = SyllabusTopic::where('subject_id', $subjectId)
+            ->active()
+            ->ordered()
+            ->get();
+
+        // Get assessments for this class/subject
+        $assessments = Assessment::where('class_id', $classId)
+            ->where('subject_id', $subjectId)
+            ->whereNotNull('syllabus_topic_id')
+            ->with(['marks', 'syllabusTopic'])
+            ->get();
+
+        // Calculate average performance per topic
+        $topicPerformance = [];
+        foreach ($assessments as $assessment) {
+            if (!$assessment->syllabus_topic_id) continue;
+
+            $marks = $assessment->marks;
+            if ($marks->isEmpty()) continue;
+
+            $papers = $assessment->papers ?? [];
+            $totalPossible = collect($papers)->sum('total_marks');
+
+            if ($totalPossible > 0) {
+                $averagePercentage = $marks->map(function($mark) use ($papers) {
+                    $studentTotal = 0;
+                    foreach ($papers as $index => $paper) {
+                        $studentTotal += $mark->mark ?? 0;
+                    }
+                    return ($studentTotal / collect($papers)->sum('total_marks')) * 100;
+                })->avg();
+
+                if (!isset($topicPerformance[$assessment->syllabus_topic_id])) {
+                    $topicPerformance[$assessment->syllabus_topic_id] = [];
+                }
+                $topicPerformance[$assessment->syllabus_topic_id][] = $averagePercentage;
+            }
+        }
+
+        // Calculate average and identify weak topics (below 60%)
+        $weakTopics = [];
+        foreach ($topicPerformance as $topicId => $performances) {
+            $avgPerformance = collect($performances)->avg();
+            if ($avgPerformance < 60) {
+                $topic = $syllabusTopics->firstWhere('id', $topicId);
+                if ($topic) {
+                    $weakTopics[] = [
+                        'id' => $topic->id,
+                        'name' => $topic->name,
+                        'average_score' => round($avgPerformance, 1),
+                        'suggested_periods' => $topic->suggested_periods,
+                        'difficulty_level' => $topic->difficulty_level,
+                        'reason' => 'Low performance: ' . round($avgPerformance, 1) . '%'
+                    ];
+                }
+            }
+        }
+
+        // Sort by performance (weakest first)
+        usort($weakTopics, function($a, $b) {
+            return $a['average_score'] <=> $b['average_score'];
+        });
+
+        return response()->json([
+            'success' => true,
+            'weak_topics' => $weakTopics,
+            'total_assessed' => count($topicPerformance),
+            'message' => count($weakTopics) > 0 
+                ? count($weakTopics) . ' weak topics identified based on assessment data.'
+                : 'No weak topics found. All topics performing above 60%.'
+        ]);
+    }
+
+    /**
+     * Get student assessment data for quick marks entry
+     */
+    public function getStudentAssessments(Request $request)
+    {
+        $teacher = auth()->user()->teacher;
+
+        if (!$teacher) {
+            return response()->json(['success' => false, 'message' => 'Teacher profile not found.'], 403);
+        }
+
+        $classId = $request->get('class_id');
+        $subjectId = $request->get('subject_id');
+
+        if (!$classId || !$subjectId) {
+            return response()->json(['success' => false, 'message' => 'Class and subject are required.'], 400);
+        }
+
+        // Get students in the class
+        $class = Grade::with('students')->find($classId);
+        if (!$class) {
+            return response()->json(['success' => false, 'message' => 'Class not found.'], 404);
+        }
+
+        // Get recent assessments for this class/subject
+        $assessments = Assessment::where('class_id', $classId)
+            ->where('subject_id', $subjectId)
+            ->with(['syllabusTopic', 'marks'])
+            ->orderBy('date', 'desc')
+            ->limit(5)
+            ->get();
+
+        $students = $class->students->map(function($student) use ($assessments) {
+            $studentMarks = [];
+            foreach ($assessments as $assessment) {
+                $mark = $assessment->marks->firstWhere('student_id', $student->id);
+                $studentMarks[] = [
+                    'assessment_id' => $assessment->id,
+                    'assessment_name' => $assessment->topic,
+                    'mark' => $mark ? $mark->mark : null,
+                    'total_marks' => $mark ? $mark->total_marks : null,
+                    'percentage' => $mark && $mark->total_marks > 0 
+                        ? round(($mark->mark / $mark->total_marks) * 100, 1) 
+                        : null
+                ];
+            }
+
+            return [
+                'id' => $student->id,
+                'name' => $student->user->name ?? 'Unknown',
+                'admission_number' => $student->admission_number,
+                'marks' => $studentMarks
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'students' => $students,
+            'assessments' => $assessments->map(function($assessment) {
+                return [
+                    'id' => $assessment->id,
+                    'topic' => $assessment->topic,
+                    'syllabus_topic_id' => $assessment->syllabus_topic_id,
+                    'date' => $assessment->date ? $assessment->date->format('Y-m-d') : null,
+                    'papers' => $assessment->papers
+                ];
+            })
+        ]);
+    }
+
+    /**
      * Store a new scheme
      */
     public function store(Request $request)

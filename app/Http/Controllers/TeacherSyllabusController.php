@@ -7,6 +7,8 @@ use App\SyllabusTopic;
 use App\Subject;
 use Illuminate\Support\Facades\DB;
 use App\Services\SyllabusPdfImportService;
+use App\Services\CambridgeSyllabusPdfImportService;
+use App\Services\ZimsecSyllabusImportService;
 
 class TeacherSyllabusController extends Controller
 {
@@ -275,6 +277,146 @@ class TeacherSyllabusController extends Controller
             
             return redirect()->route('teacher.syllabus.create')
                 ->with('error', 'Import failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Import Cambridge IGCSE syllabus topics from PDF file
+     */
+    public function importCambridgeSyllabus(Request $request)
+    {
+        $teacher = auth()->user()->teacher;
+
+        if (!$teacher) {
+            return redirect()->route('home')->with('error', 'Teacher profile not found.');
+        }
+
+        // Validate request
+        $request->validate([
+            'subject_id' => 'required|exists:subjects,id',
+            'term' => 'required|in:Term 1,Term 2,Term 3',
+            'pdf_file' => 'required|file|mimes:pdf',
+        ]);
+
+        // Verify teacher teaches this subject
+        $subjectIds = $teacher->subjects->pluck('id');
+        if (!$subjectIds->contains($request->subject_id)) {
+            return back()->withErrors(['subject_id' => 'You can only import topics for subjects you teach.']);
+        }
+
+        try {
+            // Use transaction for data integrity
+            DB::beginTransaction();
+
+            // Use Cambridge service to parse PDF and extract topics
+            $importService = new CambridgeSyllabusPdfImportService();
+            $topics = $importService->importFromPdf(
+                $request->file('pdf_file')->getRealPath(),
+                $request->subject_id,
+                $request->term
+            );
+
+            if (empty($topics)) {
+                DB::rollBack();
+                return redirect()->route('teacher.syllabus.create')
+                    ->with('error', 'No Cambridge IGCSE topics found in PDF. Please ensure the PDF contains "3 Subject content" section.');
+            }
+
+            // Check for duplicates and create syllabus topics
+            $importedCount = 0;
+            $skippedCount = 0;
+            
+            foreach ($topics as $topicData) {
+                // Check if topic already exists
+                $exists = SyllabusTopic::where('subject_id', $topicData['subject_id'])
+                    ->where('name', $topicData['name'])
+                    ->where('syllabus_category', 'cambridge')
+                    ->exists();
+                
+                if (!$exists) {
+                    SyllabusTopic::create($topicData);
+                    $importedCount++;
+                } else {
+                    $skippedCount++;
+                }
+            }
+
+            DB::commit();
+
+            $message = "{$importedCount} Cambridge IGCSE topics imported successfully.";
+            if ($skippedCount > 0) {
+                $message .= " {$skippedCount} duplicate(s) skipped.";
+            }
+
+            return redirect()->route('teacher.syllabus.index')
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return redirect()->route('teacher.syllabus.create')
+                ->with('error', 'Cambridge import failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Import ZIMSEC syllabus topics from PDF file
+     */
+    public function importZimsecSyllabus(Request $request)
+    {
+        $teacher = auth()->user()->teacher;
+
+        if (!$teacher) {
+            return redirect()->route('home')->with('error', 'Teacher profile not found.');
+        }
+
+        // Validate request
+        $request->validate([
+            'subject_id' => 'required|exists:subjects,id',
+            'term' => 'required|in:Term 1,Term 2,Term 3',
+            'pdf_file' => 'required|file|mimes:pdf|max:10240',
+        ]);
+
+        // Verify teacher teaches this subject
+        $subjectIds = $teacher->subjects->pluck('id');
+        if (!$subjectIds->contains($request->subject_id)) {
+            return back()->withErrors(['subject_id' => 'You can only import topics for subjects you teach.']);
+        }
+
+        try {
+            // Store uploaded file temporarily
+            $pdfPath = $request->file('pdf_file')->getRealPath();
+
+            // Use ZIMSEC service to parse PDF and extract topics
+            $importService = new ZimsecSyllabusImportService();
+            $result = $importService->importFromPdf(
+                $pdfPath,
+                $request->subject_id,
+                $request->term
+            );
+
+            if (!$result['success']) {
+                return redirect()->route('teacher.syllabus.create')
+                    ->with('error', 'ZIMSEC import failed: ' . implode(', ', $result['errors']));
+            }
+
+            if ($result['imported'] === 0) {
+                return redirect()->route('teacher.syllabus.create')
+                    ->with('warning', 'No ZIMSEC topics found in PDF. Please check the PDF format.');
+            }
+
+            $message = "{$result['imported']} ZIMSEC topic(s) imported successfully.";
+            
+            if (!empty($result['errors'])) {
+                $message .= " " . count($result['errors']) . " error(s) occurred.";
+            }
+
+            return redirect()->route('teacher.syllabus.index')
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            return redirect()->route('teacher.syllabus.create')
+                ->with('error', 'ZIMSEC import failed: ' . $e->getMessage());
         }
     }
 

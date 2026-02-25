@@ -840,6 +840,8 @@ Route::group(['middleware' => ['auth','role:Teacher']], function ()
     Route::get('/teacher/syllabus', 'TeacherSyllabusController@index')->name('teacher.syllabus.index');
     Route::get('/teacher/syllabus/create', 'TeacherSyllabusController@create')->name('teacher.syllabus.create');
     Route::post('/teacher/syllabus/import', 'TeacherSyllabusController@importFromPdf')->name('teacher.syllabus.import');
+    Route::post('/teacher/syllabus/import-cambridge', 'TeacherSyllabusController@importCambridgeSyllabus')->name('teacher.syllabus.import-cambridge');
+    Route::post('/teacher/syllabus/import-zimsec', 'TeacherSyllabusController@importZimsecSyllabus')->name('teacher.syllabus.import-zimsec');
     Route::post('/teacher/syllabus/bulk-delete', 'TeacherSyllabusController@bulkDelete')->name('teacher.syllabus.bulk-delete');
     Route::post('/teacher/syllabus', 'TeacherSyllabusController@store')->name('teacher.syllabus.store');
     Route::get('/teacher/syllabus/{id}/edit', 'TeacherSyllabusController@edit')->name('teacher.syllabus.edit');
@@ -850,6 +852,9 @@ Route::group(['middleware' => ['auth','role:Teacher']], function ()
     Route::get('/teacher/schemes', 'SchemeController@index')->name('teacher.schemes.index');
     Route::get('/teacher/schemes/create', 'SchemeController@create')->name('teacher.schemes.create');
     Route::get('/teacher/schemes/syllabus-topics', 'SchemeController@getSyllabusTopics')->name('teacher.schemes.syllabus-topics');
+    Route::get('/teacher/schemes/auto-generate', 'SchemeController@autoGenerateFromAssessments')->name('teacher.schemes.auto-generate');
+    Route::get('/teacher/schemes/student-assessments', 'SchemeController@getStudentAssessments')->name('teacher.schemes.student-assessments');
+    Route::get('/teacher/schemes/{id}/print', 'SchemeController@print')->name('teacher.schemes.print');
     Route::post('/teacher/schemes', 'SchemeController@store')->name('teacher.schemes.store');
     Route::post('/teacher/schemes/topic/{topicId}/status', 'SchemeController@updateTopicStatus')->name('teacher.schemes.topic.status');
     Route::post('/teacher/schemes/topic/{topicId}/remedial', 'SchemeController@createRemedial')->name('teacher.schemes.remedial.create');

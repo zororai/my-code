@@ -8,6 +8,7 @@ class SyllabusTopic extends Model
 {
     protected $fillable = [
         'subject_id',
+        'syllabus_category',
         'name',
         'description',
         'learning_objectives',

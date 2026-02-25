@@ -33,6 +33,24 @@ class LoginController extends Controller
     protected $redirectTo = '/home';
 
     /**
+     * Get the post-login redirect path.
+     *
+     * @return string
+     */
+    public function redirectTo()
+    {
+        $landingPage = \App\SchoolSetting::get('landing_page', 'logins');
+        
+        // Map landing page setting to actual route
+        if ($landingPage === 'web') {
+            return '/web';
+        }
+        
+        // Default to /home for 'logins' or any other value
+        return '/home';
+    }
+
+    /**
      * Create a new controller instance.
      *
      * @return void
