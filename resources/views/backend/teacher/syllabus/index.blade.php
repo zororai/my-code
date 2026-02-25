@@ -97,6 +97,7 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button type="button" onclick="viewTopicDetails({{ $topic->id }})" class="text-green-600 hover:text-green-900 mr-3">View</button>
                                 <a href="{{ route('teacher.syllabus.edit', $topic->id) }}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
                                 <button type="button" onclick="deleteTopic({{ $topic->id }})" class="text-red-600 hover:text-red-900">Delete</button>
                             </td>
@@ -137,6 +138,57 @@
     @method('DELETE')
 </form>
 @endforeach
+
+{{-- Topic Details Modal --}}
+<div id="topicDetailsModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-xl bg-white">
+        <div class="flex items-center justify-between mb-4 border-b pb-4">
+            <h3 class="text-xl font-bold text-gray-900">Topic Details</h3>
+            <button onclick="closeTopicModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        
+        <div id="topicDetailsContent" class="space-y-4">
+            <!-- Content populated by JavaScript -->
+        </div>
+        
+        <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
+            <button onclick="closeTopicModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-colors">
+                Close
+            </button>
+            <a id="editTopicBtn" href="#" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors">
+                Edit Topic
+            </a>
+        </div>
+    </div>
+</div>
+
+{{-- Topic data for JavaScript --}}
+@php
+$topicsArray = [];
+foreach($topics as $topic) {
+    $topicsArray[$topic->id] = [
+        'id' => $topic->id,
+        'name' => $topic->name,
+        'subject' => $topic->subject->subject_code . ' - ' . $topic->subject->name,
+        'term' => $topic->term,
+        'description' => $topic->description,
+        'learning_objectives' => $topic->learning_objectives,
+        'difficulty_level' => $topic->difficulty_level,
+        'suggested_periods' => $topic->suggested_periods,
+        'order_index' => $topic->order_index,
+        'is_active' => $topic->is_active,
+        'created_at' => $topic->created_at->format('M d, Y'),
+        'updated_at' => $topic->updated_at->format('M d, Y'),
+    ];
+}
+@endphp
+<script type="application/json" id="topicsData">
+{!! json_encode($topicsArray) !!}
+</script>
 
 <script>
 function toggleAll(source) {
@@ -190,6 +242,84 @@ function deleteTopic(topicId) {
     } else {
         alert('Delete form not found for topic ' + topicId);
     }
+}
+
+// View topic details
+function viewTopicDetails(topicId) {
+    const topicsData = JSON.parse(document.getElementById('topicsData').textContent);
+    const topic = topicsData[topicId];
+    
+    if (!topic) {
+        alert('Topic not found');
+        return;
+    }
+    
+    const difficultyColors = {
+        'easy': 'bg-green-100 text-green-800',
+        'medium': 'bg-yellow-100 text-yellow-800',
+        'hard': 'bg-red-100 text-red-800'
+    };
+    
+    const statusBadge = topic.is_active 
+        ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>'
+        : '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Inactive</span>';
+    
+    const difficultyBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${difficultyColors[topic.difficulty_level] || 'bg-gray-100 text-gray-800'}">${topic.difficulty_level.charAt(0).toUpperCase() + topic.difficulty_level.slice(1)}</span>`;
+    
+    let html = `
+        <div class="bg-gray-50 rounded-lg p-4">
+            <h4 class="text-lg font-bold text-gray-900 mb-2">${escapeHtml(topic.name)}</h4>
+            <div class="flex flex-wrap gap-2 mb-3">
+                ${statusBadge}
+                ${difficultyBadge}
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+                <div><span class="font-medium text-gray-600">Subject:</span> <span class="text-gray-900">${escapeHtml(topic.subject)}</span></div>
+                <div><span class="font-medium text-gray-600">Term:</span> <span class="text-gray-900">${escapeHtml(topic.term || 'Not set')}</span></div>
+                <div><span class="font-medium text-gray-600">Periods:</span> <span class="text-gray-900">${topic.suggested_periods}</span></div>
+                <div><span class="font-medium text-gray-600">Order:</span> <span class="text-gray-900">${topic.order_index}</span></div>
+            </div>
+        </div>
+    `;
+    
+    if (topic.description) {
+        html += `
+            <div>
+                <h5 class="text-sm font-semibold text-gray-700 mb-2">Description</h5>
+                <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-gray-700 whitespace-pre-line">${escapeHtml(topic.description)}</div>
+            </div>
+        `;
+    }
+    
+    if (topic.learning_objectives) {
+        html += `
+            <div>
+                <h5 class="text-sm font-semibold text-gray-700 mb-2">Learning Objectives</h5>
+                <div class="bg-green-50 border border-green-100 rounded-lg p-3 text-sm text-gray-700 whitespace-pre-line">${escapeHtml(topic.learning_objectives)}</div>
+            </div>
+        `;
+    }
+    
+    html += `
+        <div class="text-xs text-gray-500 pt-2 border-t">
+            <span>Created: ${topic.created_at}</span> · <span>Updated: ${topic.updated_at}</span>
+        </div>
+    `;
+    
+    document.getElementById('topicDetailsContent').innerHTML = html;
+    document.getElementById('editTopicBtn').href = '/teacher/syllabus/' + topicId + '/edit';
+    document.getElementById('topicDetailsModal').classList.remove('hidden');
+}
+
+function closeTopicModal() {
+    document.getElementById('topicDetailsModal').classList.add('hidden');
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 </script>
 @endsection

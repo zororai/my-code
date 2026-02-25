@@ -42,40 +42,50 @@
                     <h3 class="text-lg font-bold text-gray-900 mb-1">ZIMSEC Syllabus Import</h3>
                     <p class="text-xs text-gray-600 mb-3">Import Ministry/ZIMSEC structured syllabus</p>
                     
-                    <form action="{{ route('teacher.syllabus.import') }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+                    <form id="zimsecPreviewForm" method="POST" enctype="multipart/form-data" class="space-y-3" onsubmit="return false;">
                         @csrf
                         
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">Subject *</label>
-                            <select name="subject_id" required class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                            <select id="zimsec_subject_id" name="subject_id" required class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
                                 <option value="">Select Subject</option>
                                 @foreach($subjects as $subject)
                                     <option value="{{ $subject->id }}">{{ $subject->subject_code }} - {{ $subject->name }}</option>
                                 @endforeach
                             </select>
                         </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Term *</label>
+                            <select id="zimsec_term" name="term" required class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                                <option value="Term 1">Term 1</option>
+                                <option value="Term 2">Term 2</option>
+                                <option value="Term 3">Term 3</option>
+                            </select>
+                        </div>
                         
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">PDF File *</label>
-                            <input type="file" name="pdf_file" accept=".pdf" required 
+                            <input type="file" id="zimsec_pdf_file" name="pdf_file" accept=".pdf" required 
                                    class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
                         </div>
                         
                         <div class="bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-gray-700">
-                            <strong class="text-blue-900">Required Format:</strong>
+                            <strong class="text-blue-900">Commerce Table Format:</strong>
                             <ul class="mt-1 ml-3 list-disc space-y-0.5 text-xs">
-                                <li><strong>FORM 1-4</strong> markers</li>
-                                <li><strong>TOPIC</strong> sections</li>
-                                <li><strong>LEARNING OBJECTIVES</strong>, <strong>CONTENT</strong>, <strong>ACTIVITIES</strong>, <strong>RESOURCES</strong></li>
+                                <li>Section headers: <strong>8.6 FINANCE AND BANKING</strong></li>
+                                <li>Subtopics: <strong>Personal Finance</strong>, <strong>Money</strong></li>
+                                <li>Bullet points for learning objectives</li>
                             </ul>
                         </div>
                         
-                        <div class="flex justify-end pt-1">
-                            <button type="submit" class="inline-flex items-center px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg shadow transition-colors">
+                        <div class="flex justify-end gap-2 pt-1">
+                            <button type="button" onclick="previewZimsec(event)" class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow transition-colors">
                                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                 </svg>
-                                Import ZIMSEC
+                                Preview
                             </button>
                         </div>
                     </form>
@@ -330,5 +340,224 @@ function syllabusForm() {
         }
     }
 }
+
+// ZIMSEC Preview Functionality
+function previewZimsec(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const form = document.getElementById('zimsecPreviewForm');
+    const formData = new FormData(form);
+    
+    // Show loading
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="animate-spin h-3 w-3 mr-1 inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing...';
+    
+    fetch('{{ route("teacher.syllabus.preview-zimsec") }}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        
+        if (data.success) {
+            showPreviewModal(data);
+        } else {
+            alert('Preview failed: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        alert('Error: ' + error.message);
+    });
+}
+
+// Global storage for parsed topics
+let parsedTopicsData = null;
+
+function showPreviewModal(data) {
+    const modal = document.getElementById('previewModal');
+    const content = document.getElementById('previewContent');
+    
+    // Store data globally for import
+    parsedTopicsData = data;
+    
+    let html = `
+        <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 class="font-bold text-lg text-blue-900">Import Summary</h3>
+            <p class="text-sm text-gray-700 mt-1">
+                <strong>Subject:</strong> ${data.subject}<br>
+                <strong>Term:</strong> ${data.term}<br>
+                <strong>Topics Found:</strong> ${data.count}
+            </p>
+            <div class="mt-3 flex items-center gap-3">
+                <label class="flex items-center text-sm">
+                    <input type="checkbox" id="selectAllTopics" onchange="toggleAllTopics(this)" checked class="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500 mr-2">
+                    Select All
+                </label>
+                <span id="selectedCount" class="text-xs text-gray-600">${data.count} selected</span>
+            </div>
+        </div>
+        
+        <div class="space-y-3 max-h-96 overflow-y-auto" id="topicsList">
+    `;
+    
+    data.topics.forEach((topic, index) => {
+        html += `
+            <div class="border border-gray-200 rounded-lg p-3 bg-gray-50 topic-item" data-index="${index}">
+                <div class="flex items-start gap-3">
+                    <input type="checkbox" class="topic-checkbox w-4 h-4 mt-1 text-purple-600 rounded border-gray-300 focus:ring-purple-500" data-index="${index}" checked onchange="updateSelectedCount()">
+                    <div class="flex-1">
+                        <div class="flex items-start justify-between mb-2">
+                            <h4 class="font-semibold text-gray-900">${index + 1}. ${escapeHtmlPreview(topic.name)}</h4>
+                            <span class="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">${topic.difficulty_level}</span>
+                        </div>
+                        
+                        ${topic.learning_objectives ? `
+                            <div class="mb-2">
+                                <p class="text-xs font-medium text-green-700 mb-1">📚 Learning Objectives:</p>
+                                <p class="text-xs text-gray-700 whitespace-pre-line bg-green-50 p-2 rounded border border-green-100">${escapeHtmlPreview(topic.learning_objectives)}</p>
+                            </div>
+                        ` : ''}
+                        
+                        ${topic.description ? `
+                            <div class="mb-2">
+                                <p class="text-xs font-medium text-blue-700 mb-1">📝 Content (Description):</p>
+                                <p class="text-xs text-gray-700 whitespace-pre-line bg-blue-50 p-2 rounded border border-blue-100">${escapeHtmlPreview(topic.description)}</p>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="flex gap-4 text-xs text-gray-600 mt-2">
+                            <span><strong>Periods:</strong> ${topic.suggested_periods}</span>
+                            <span><strong>Order:</strong> ${topic.order_index}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    content.innerHTML = html;
+    modal.classList.remove('hidden');
+}
+
+function escapeHtmlPreview(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function toggleAllTopics(checkbox) {
+    const checkboxes = document.querySelectorAll('.topic-checkbox');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.topic-checkbox');
+    const checked = document.querySelectorAll('.topic-checkbox:checked');
+    document.getElementById('selectedCount').textContent = `${checked.length} of ${checkboxes.length} selected`;
+    document.getElementById('selectAllTopics').checked = checked.length === checkboxes.length;
+}
+
+function closePreviewModal() {
+    document.getElementById('previewModal').classList.add('hidden');
+}
+
+function confirmImport() {
+    if (!parsedTopicsData) {
+        alert('No topics data available. Please preview again.');
+        return;
+    }
+    
+    // Get selected topics
+    const checkboxes = document.querySelectorAll('.topic-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert('Please select at least one topic to import.');
+        return;
+    }
+    
+    const selectedIndices = [];
+    checkboxes.forEach(cb => selectedIndices.push(parseInt(cb.dataset.index)));
+    
+    // Filter only selected topics
+    const selectedTopics = selectedIndices.map(i => parsedTopicsData.topics[i]);
+    
+    // Get form data
+    const subjectId = document.getElementById('zimsec_subject_id').value;
+    const term = document.getElementById('zimsec_term').value;
+    
+    // Close modal
+    closePreviewModal();
+    
+    // Confirm import
+    if (confirm(`Import ${selectedTopics.length} topic(s)? Click OK to proceed.`)) {
+        // Create request body
+        const requestData = {
+            subject_id: subjectId,
+            term: term,
+            topics: selectedTopics,
+            _token: '{{ csrf_token() }}'
+        };
+        
+        fetch('{{ route("teacher.syllabus.import-zimsec") }}', {
+            method: 'POST',
+            body: JSON.stringify(requestData),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message || `${data.imported} topic(s) imported successfully!`);
+                window.location.href = '{{ route("teacher.syllabus.index") }}';
+            } else {
+                alert('Import failed: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            alert('Error during import: ' + error.message);
+        });
+    }
+}
 </script>
+
+<!-- Preview Modal -->
+<div id="previewModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-lg bg-white">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-bold text-gray-900">Preview ZIMSEC Import</h3>
+            <button onclick="closePreviewModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        
+        <div id="previewContent" class="mb-6"></div>
+        
+        <div class="flex justify-end gap-3">
+            <button onclick="closePreviewModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-colors">
+                Cancel
+            </button>
+            <button onclick="confirmImport()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors">
+                Confirm & Import
+            </button>
+        </div>
+    </div>
+</div>
+
 @endsection

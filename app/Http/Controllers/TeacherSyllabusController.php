@@ -360,14 +360,14 @@ class TeacherSyllabusController extends Controller
     }
 
     /**
-     * Import ZIMSEC syllabus topics from PDF file
+     * Preview ZIMSEC syllabus topics from PDF file
      */
-    public function importZimsecSyllabus(Request $request)
+    public function previewZimsecSyllabus(Request $request)
     {
         $teacher = auth()->user()->teacher;
 
         if (!$teacher) {
-            return redirect()->route('home')->with('error', 'Teacher profile not found.');
+            return response()->json(['success' => false, 'message' => 'Teacher profile not found.'], 403);
         }
 
         // Validate request
@@ -380,43 +380,114 @@ class TeacherSyllabusController extends Controller
         // Verify teacher teaches this subject
         $subjectIds = $teacher->subjects->pluck('id');
         if (!$subjectIds->contains($request->subject_id)) {
-            return back()->withErrors(['subject_id' => 'You can only import topics for subjects you teach.']);
+            return response()->json(['success' => false, 'message' => 'You can only preview topics for subjects you teach.'], 403);
         }
 
         try {
             // Store uploaded file temporarily
             $pdfPath = $request->file('pdf_file')->getRealPath();
 
-            // Use ZIMSEC service to parse PDF and extract topics
+            // Use ZIMSEC service to preview topics
             $importService = new ZimsecSyllabusImportService();
-            $result = $importService->importFromPdf(
-                $pdfPath,
-                $request->subject_id,
-                $request->term
-            );
+            $result = $importService->previewTopics($pdfPath);
 
             if (!$result['success']) {
-                return redirect()->route('teacher.syllabus.create')
-                    ->with('error', 'ZIMSEC import failed: ' . implode(', ', $result['errors']));
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to parse PDF',
+                    'error' => $result['error'] ?? 'Unknown error'
+                ]);
             }
 
-            if ($result['imported'] === 0) {
-                return redirect()->route('teacher.syllabus.create')
-                    ->with('warning', 'No ZIMSEC topics found in PDF. Please check the PDF format.');
-            }
+            // Get subject name for display
+            $subject = Subject::find($request->subject_id);
 
-            $message = "{$result['imported']} ZIMSEC topic(s) imported successfully.";
-            
-            if (!empty($result['errors'])) {
-                $message .= " " . count($result['errors']) . " error(s) occurred.";
-            }
-
-            return redirect()->route('teacher.syllabus.index')
-                ->with('success', $message);
+            return response()->json([
+                'success' => true,
+                'topics' => $result['topics'],
+                'count' => $result['count'],
+                'subject' => $subject->name,
+                'term' => $request->term
+            ]);
 
         } catch (\Exception $e) {
-            return redirect()->route('teacher.syllabus.create')
-                ->with('error', 'ZIMSEC import failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Preview failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Import ZIMSEC syllabus topics from selected preview data
+     */
+    public function importZimsecSyllabus(Request $request)
+    {
+        $teacher = auth()->user()->teacher;
+
+        if (!$teacher) {
+            return response()->json(['success' => false, 'message' => 'Teacher profile not found.'], 403);
+        }
+
+        // Validate request - accept JSON with topics array
+        $request->validate([
+            'subject_id' => 'required|exists:subjects,id',
+            'term' => 'required|in:Term 1,Term 2,Term 3',
+            'topics' => 'required|array|min:1',
+            'topics.*.name' => 'required|string',
+        ]);
+
+        // Verify teacher teaches this subject
+        $subjectIds = $teacher->subjects->pluck('id');
+        if (!$subjectIds->contains($request->subject_id)) {
+            return response()->json(['success' => false, 'message' => 'You can only import topics for subjects you teach.'], 403);
+        }
+
+        try {
+            $imported = 0;
+            $errors = [];
+
+            DB::beginTransaction();
+
+            foreach ($request->topics as $topicData) {
+                try {
+                    SyllabusTopic::create([
+                        'subject_id' => $request->subject_id,
+                        'name' => $topicData['name'],
+                        'description' => $topicData['description'] ?? null,
+                        'learning_objectives' => $topicData['learning_objectives'] ?? null,
+                        'term' => $request->term,
+                        'difficulty_level' => $topicData['difficulty_level'] ?? 'medium',
+                        'suggested_periods' => $topicData['suggested_periods'] ?? 4,
+                        'order_index' => $topicData['order_index'] ?? 0,
+                        'is_active' => true
+                    ]);
+                    $imported++;
+                } catch (\Exception $e) {
+                    $errors[] = "Failed to import '{$topicData['name']}': " . $e->getMessage();
+                }
+            }
+
+            DB::commit();
+
+            $message = "{$imported} ZIMSEC topic(s) imported successfully.";
+            if (!empty($errors)) {
+                $message .= " " . count($errors) . " error(s) occurred.";
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'imported' => $imported,
+                'errors' => $errors
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'ZIMSEC import failed: ' . $e->getMessage()
+            ], 500);
         }
     }
 
