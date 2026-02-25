@@ -840,6 +840,7 @@ Route::group(['middleware' => ['auth','role:Teacher']], function ()
     Route::get('/teacher/syllabus', 'TeacherSyllabusController@index')->name('teacher.syllabus.index');
     Route::get('/teacher/syllabus/create', 'TeacherSyllabusController@create')->name('teacher.syllabus.create');
     Route::post('/teacher/syllabus/import', 'TeacherSyllabusController@importFromPdf')->name('teacher.syllabus.import');
+    Route::post('/teacher/syllabus/preview-cambridge', 'TeacherSyllabusController@previewCambridgeSyllabus')->name('teacher.syllabus.preview-cambridge');
     Route::post('/teacher/syllabus/import-cambridge', 'TeacherSyllabusController@importCambridgeSyllabus')->name('teacher.syllabus.import-cambridge');
     Route::post('/teacher/syllabus/preview-zimsec', 'TeacherSyllabusController@previewZimsecSyllabus')->name('teacher.syllabus.preview-zimsec');
     Route::post('/teacher/syllabus/import-zimsec', 'TeacherSyllabusController@importZimsecSyllabus')->name('teacher.syllabus.import-zimsec');

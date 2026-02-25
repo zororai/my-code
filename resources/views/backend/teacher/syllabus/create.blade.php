@@ -105,12 +105,12 @@
                     <h3 class="text-lg font-bold text-gray-900 mb-1">Cambridge IGCSE Import</h3>
                     <p class="text-xs text-gray-600 mb-3">Import Cambridge IGCSE syllabus</p>
                     
-                    <form action="{{ route('teacher.syllabus.import-cambridge') }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+                    <form id="cambridgePreviewForm" method="POST" enctype="multipart/form-data" class="space-y-3" onsubmit="return false;">
                         @csrf
                         
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">Subject *</label>
-                            <select name="subject_id" required class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                            <select id="cambridge_subject_id" name="subject_id" required class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
                                 <option value="">Select Subject</option>
                                 @foreach($subjects as $subject)
                                     <option value="{{ $subject->id }}">{{ $subject->subject_code }} - {{ $subject->name }}</option>
@@ -120,7 +120,7 @@
 
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">Term *</label>
-                            <select name="term" required class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                            <select id="cambridge_term" name="term" required class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
                                 <option value="Term 1">Term 1</option>
                                 <option value="Term 2">Term 2</option>
                                 <option value="Term 3">Term 3</option>
@@ -129,7 +129,7 @@
                         
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">PDF File *</label>
-                            <input type="file" name="pdf_file" accept=".pdf" required 
+                            <input type="file" id="cambridge_pdf_file" name="pdf_file" accept=".pdf" required 
                                    class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
                         </div>
                         
@@ -145,11 +145,12 @@
                         </div>
                         
                         <div class="flex justify-end pt-1">
-                            <button type="submit" class="inline-flex items-center px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg shadow transition-colors">
+                            <button type="button" onclick="previewCambridge(event)" class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow transition-colors">
                                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                 </svg>
-                                Import Cambridge
+                                Preview
                             </button>
                         </div>
                     </form>
@@ -533,6 +534,191 @@ function confirmImport() {
         });
     }
 }
+
+// Cambridge Preview Functionality
+let parsedCambridgeData = null;
+
+function previewCambridge(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const form = document.getElementById('cambridgePreviewForm');
+    const formData = new FormData(form);
+    
+    // Show loading
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="animate-spin h-3 w-3 mr-1 inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing...';
+    
+    fetch('{{ route("teacher.syllabus.preview-cambridge") }}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        
+        if (data.success) {
+            showCambridgePreviewModal(data);
+        } else {
+            alert('Preview failed: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        alert('Error: ' + error.message);
+    });
+}
+
+function showCambridgePreviewModal(data) {
+    const modal = document.getElementById('cambridgePreviewModal');
+    const content = document.getElementById('cambridgePreviewContent');
+    
+    // Store data globally for import
+    parsedCambridgeData = data;
+    
+    let html = `
+        <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <h3 class="font-bold text-lg text-green-900">Import Summary</h3>
+            <p class="text-sm text-gray-700 mt-1">
+                <strong>Subject:</strong> ${data.subject}<br>
+                <strong>Term:</strong> ${data.term}<br>
+                <strong>Topics Found:</strong> ${data.count}
+            </p>
+            <div class="mt-3 flex items-center gap-3">
+                <label class="flex items-center text-sm">
+                    <input type="checkbox" id="selectAllCambridgeTopics" onchange="toggleAllCambridgeTopics(this)" checked class="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500 mr-2">
+                    Select All
+                </label>
+                <span id="cambridgeSelectedCount" class="text-xs text-gray-600">${data.count} selected</span>
+            </div>
+        </div>
+        
+        <div class="space-y-3 max-h-96 overflow-y-auto" id="cambridgeTopicsList">
+    `;
+    
+    data.topics.forEach((topic, index) => {
+        html += `
+            <div class="border border-gray-200 rounded-lg p-3 bg-gray-50 cambridge-topic-item" data-index="${index}">
+                <div class="flex items-start gap-3">
+                    <input type="checkbox" class="cambridge-topic-checkbox w-4 h-4 mt-1 text-green-600 rounded border-gray-300 focus:ring-green-500" data-index="${index}" checked onchange="updateCambridgeSelectedCount()">
+                    <div class="flex-1">
+                        <div class="flex items-start justify-between mb-2">
+                            <h4 class="font-semibold text-gray-900">${index + 1}. ${escapeHtmlPreview(topic.name)}</h4>
+                            <span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">${topic.difficulty_level || 'medium'}</span>
+                        </div>
+                        
+                        ${topic.learning_objectives ? `
+                            <div class="mb-2">
+                                <p class="text-xs font-medium text-green-700 mb-1">📚 Learning Objectives:</p>
+                                <p class="text-xs text-gray-700 whitespace-pre-line bg-green-50 p-2 rounded border border-green-100">${escapeHtmlPreview(topic.learning_objectives)}</p>
+                            </div>
+                        ` : ''}
+                        
+                        ${topic.description ? `
+                            <div class="mb-2">
+                                <p class="text-xs font-medium text-teal-700 mb-1">📝 Notes & Guidance:</p>
+                                <p class="text-xs text-gray-700 whitespace-pre-line bg-teal-50 p-2 rounded border border-teal-100">${escapeHtmlPreview(topic.description)}</p>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="flex gap-4 text-xs text-gray-600 mt-2">
+                            <span><strong>Periods:</strong> ${topic.suggested_periods || 4}</span>
+                            <span><strong>Order:</strong> ${topic.order_index || index + 1}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    content.innerHTML = html;
+    modal.classList.remove('hidden');
+}
+
+function toggleAllCambridgeTopics(checkbox) {
+    const checkboxes = document.querySelectorAll('.cambridge-topic-checkbox');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+    updateCambridgeSelectedCount();
+}
+
+function updateCambridgeSelectedCount() {
+    const checkboxes = document.querySelectorAll('.cambridge-topic-checkbox');
+    const checked = document.querySelectorAll('.cambridge-topic-checkbox:checked');
+    document.getElementById('cambridgeSelectedCount').textContent = `${checked.length} of ${checkboxes.length} selected`;
+    document.getElementById('selectAllCambridgeTopics').checked = checked.length === checkboxes.length;
+}
+
+function closeCambridgePreviewModal() {
+    document.getElementById('cambridgePreviewModal').classList.add('hidden');
+}
+
+function confirmCambridgeImport() {
+    if (!parsedCambridgeData) {
+        alert('No topics data available. Please preview again.');
+        return;
+    }
+    
+    // Get selected topics
+    const checkboxes = document.querySelectorAll('.cambridge-topic-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert('Please select at least one topic to import.');
+        return;
+    }
+    
+    const selectedIndices = [];
+    checkboxes.forEach(cb => selectedIndices.push(parseInt(cb.dataset.index)));
+    
+    // Filter only selected topics
+    const selectedTopics = selectedIndices.map(i => parsedCambridgeData.topics[i]);
+    
+    // Get form data
+    const subjectId = document.getElementById('cambridge_subject_id').value;
+    const term = document.getElementById('cambridge_term').value;
+    
+    // Close modal
+    closeCambridgePreviewModal();
+    
+    // Confirm import
+    if (confirm(`Import ${selectedTopics.length} Cambridge IGCSE topic(s)? Click OK to proceed.`)) {
+        // Create request body
+        const requestData = {
+            subject_id: subjectId,
+            term: term,
+            topics: selectedTopics,
+            _token: '{{ csrf_token() }}'
+        };
+        
+        fetch('{{ route("teacher.syllabus.import-cambridge") }}', {
+            method: 'POST',
+            body: JSON.stringify(requestData),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message || `${data.imported} topic(s) imported successfully!`);
+                window.location.href = '{{ route("teacher.syllabus.index") }}';
+            } else {
+                alert('Import failed: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            alert('Error during import: ' + error.message);
+        });
+    }
+}
 </script>
 
 <!-- Preview Modal -->
@@ -554,6 +740,31 @@ function confirmImport() {
                 Cancel
             </button>
             <button onclick="confirmImport()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors">
+                Confirm & Import
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Cambridge Preview Modal -->
+<div id="cambridgePreviewModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-lg bg-white">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-bold text-gray-900">Preview Cambridge IGCSE Import</h3>
+            <button onclick="closeCambridgePreviewModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        
+        <div id="cambridgePreviewContent" class="mb-6"></div>
+        
+        <div class="flex justify-end gap-3">
+            <button onclick="closeCambridgePreviewModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-colors">
+                Cancel
+            </button>
+            <button onclick="confirmCambridgeImport()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors">
                 Confirm & Import
             </button>
         </div>

@@ -75,9 +75,25 @@
             font-size: 16px;
         }
         
+        .form-group .toggle-password {
+            position: absolute;
+            right: 15px !important;
+            left: auto !important;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s ease;
+            z-index: 10;
+        }
+        
+        .form-group .toggle-password:hover {
+            color: #2d5016;
+        }
+        
         .form-input {
             width: 100%;
-            padding: 15px 15px 15px 45px;
+            padding: 15px 45px 15px 45px;
             border: none;
             background: rgba(0, 0, 0, 0.05);
             border-radius: 10px;
@@ -186,7 +202,8 @@
             
             <div class="form-group">
                 <i class="fas fa-lock"></i>
-                <input type="password" name="password" class="form-input" placeholder="Password" required>
+                <input type="password" name="password" id="password" class="form-input" placeholder="Password" required>
+                <i class="fas fa-eye toggle-password" id="togglePassword" onclick="togglePasswordVisibility()"></i>
             </div>
             
             <div class="form-options">
@@ -200,5 +217,22 @@
             <button type="submit" class="login-btn">Login</button>
         </form>
     </div>
+    
+    <script>
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('togglePassword');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+    </script>
 </body>
 </html>

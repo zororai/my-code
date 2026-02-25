@@ -281,81 +281,149 @@ class TeacherSyllabusController extends Controller
     }
 
     /**
-     * Import Cambridge IGCSE syllabus topics from PDF file
+     * Preview Cambridge IGCSE syllabus topics from PDF file
      */
-    public function importCambridgeSyllabus(Request $request)
+    public function previewCambridgeSyllabus(Request $request)
     {
         $teacher = auth()->user()->teacher;
 
         if (!$teacher) {
-            return redirect()->route('home')->with('error', 'Teacher profile not found.');
+            return response()->json(['success' => false, 'message' => 'Teacher profile not found.'], 403);
         }
 
         // Validate request
         $request->validate([
             'subject_id' => 'required|exists:subjects,id',
             'term' => 'required|in:Term 1,Term 2,Term 3',
-            'pdf_file' => 'required|file|mimes:pdf',
+            'pdf_file' => 'required|file|mimes:pdf|max:10240',
         ]);
 
         // Verify teacher teaches this subject
         $subjectIds = $teacher->subjects->pluck('id');
         if (!$subjectIds->contains($request->subject_id)) {
-            return back()->withErrors(['subject_id' => 'You can only import topics for subjects you teach.']);
+            return response()->json(['success' => false, 'message' => 'You can only import topics for subjects you teach.'], 403);
         }
 
         try {
-            // Use transaction for data integrity
-            DB::beginTransaction();
-
-            // Use Cambridge service to parse PDF and extract topics
+            $pdfPath = $request->file('pdf_file')->getRealPath();
+            
+            // Use Cambridge service to parse PDF and extract topics (preview only)
             $importService = new CambridgeSyllabusPdfImportService();
             $topics = $importService->importFromPdf(
-                $request->file('pdf_file')->getRealPath(),
+                $pdfPath,
                 $request->subject_id,
                 $request->term
             );
 
             if (empty($topics)) {
-                DB::rollBack();
-                return redirect()->route('teacher.syllabus.create')
-                    ->with('error', 'No Cambridge IGCSE topics found in PDF. Please ensure the PDF contains "3 Subject content" section.');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No Cambridge IGCSE topics found in PDF. Please ensure the PDF contains "3 Subject content" section.'
+                ]);
             }
 
-            // Check for duplicates and create syllabus topics
-            $importedCount = 0;
-            $skippedCount = 0;
-            
-            foreach ($topics as $topicData) {
-                // Check if topic already exists
-                $exists = SyllabusTopic::where('subject_id', $topicData['subject_id'])
-                    ->where('name', $topicData['name'])
-                    ->where('syllabus_category', 'cambridge')
-                    ->exists();
-                
-                if (!$exists) {
-                    SyllabusTopic::create($topicData);
-                    $importedCount++;
-                } else {
-                    $skippedCount++;
+            // Get subject name for display
+            $subject = Subject::find($request->subject_id);
+
+            return response()->json([
+                'success' => true,
+                'subject' => $subject->subject_code . ' - ' . $subject->name,
+                'term' => $request->term,
+                'count' => count($topics),
+                'topics' => $topics
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Preview failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Import Cambridge IGCSE syllabus topics from selected preview data
+     */
+    public function importCambridgeSyllabus(Request $request)
+    {
+        $teacher = auth()->user()->teacher;
+
+        if (!$teacher) {
+            return response()->json(['success' => false, 'message' => 'Teacher profile not found.'], 403);
+        }
+
+        // Validate request - accept JSON with topics array
+        $request->validate([
+            'subject_id' => 'required|exists:subjects,id',
+            'term' => 'required|in:Term 1,Term 2,Term 3',
+            'topics' => 'required|array|min:1',
+            'topics.*.name' => 'required|string',
+        ]);
+
+        // Verify teacher teaches this subject
+        $subjectIds = $teacher->subjects->pluck('id');
+        if (!$subjectIds->contains($request->subject_id)) {
+            return response()->json(['success' => false, 'message' => 'You can only import topics for subjects you teach.'], 403);
+        }
+
+        try {
+            $imported = 0;
+            $skipped = 0;
+            $errors = [];
+
+            DB::beginTransaction();
+
+            foreach ($request->topics as $topicData) {
+                try {
+                    // Check if topic already exists
+                    $exists = SyllabusTopic::where('subject_id', $request->subject_id)
+                        ->where('name', $topicData['name'])
+                        ->where('syllabus_category', 'cambridge')
+                        ->exists();
+                    
+                    if (!$exists) {
+                        SyllabusTopic::create([
+                            'subject_id' => $request->subject_id,
+                            'name' => $topicData['name'],
+                            'description' => $topicData['description'] ?? null,
+                            'learning_objectives' => $topicData['learning_objectives'] ?? null,
+                            'term' => $request->term,
+                            'difficulty_level' => $topicData['difficulty_level'] ?? 'medium',
+                            'suggested_periods' => $topicData['suggested_periods'] ?? 4,
+                            'order_index' => $topicData['order_index'] ?? 0,
+                            'syllabus_category' => 'cambridge',
+                            'is_active' => true
+                        ]);
+                        $imported++;
+                    } else {
+                        $skipped++;
+                    }
+                } catch (\Exception $e) {
+                    $errors[] = "Failed to import '{$topicData['name']}': " . $e->getMessage();
                 }
             }
 
             DB::commit();
 
-            $message = "{$importedCount} Cambridge IGCSE topics imported successfully.";
-            if ($skippedCount > 0) {
-                $message .= " {$skippedCount} duplicate(s) skipped.";
+            $message = "{$imported} Cambridge IGCSE topic(s) imported successfully.";
+            if ($skipped > 0) {
+                $message .= " {$skipped} duplicate(s) skipped.";
             }
 
-            return redirect()->route('teacher.syllabus.index')
-                ->with('success', $message);
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'imported' => $imported,
+                'skipped' => $skipped,
+                'errors' => $errors
+            ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
-            return redirect()->route('teacher.syllabus.create')
-                ->with('error', 'Cambridge import failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Cambridge import failed: ' . $e->getMessage()
+            ], 500);
         }
     }
 
