@@ -76,6 +76,75 @@
             </div>
         @endif
 
+        <!-- Bulk Import Section -->
+        <div class="mb-4 bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="px-4 py-3 bg-gradient-to-r from-purple-500 to-indigo-600">
+                <h3 class="text-base font-bold text-white flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    Bulk Import Students with Parents
+                </h3>
+            </div>
+            
+            <div class="p-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Instructions -->
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-900 mb-2">How to Import</h4>
+                        <ol class="text-xs text-gray-600 space-y-1 list-decimal list-inside">
+                            <li>Download the CSV template</li>
+                            <li>Fill in student and parent details</li>
+                            <li>Save as CSV format</li>
+                            <li>Upload the file</li>
+                        </ol>
+                        
+                        <div class="mt-3 bg-blue-50 border border-blue-200 rounded p-2">
+                            <p class="text-xs text-blue-800 font-medium mb-1">Required Columns:</p>
+                            <ul class="text-xs text-blue-700 space-y-0.5">
+                                <li><strong>student_name, student_email, class_name</strong></li>
+                                <li><strong>parent_1_name, parent_1_phone</strong> (optional)</li>
+                            </ul>
+                        </div>
+                        
+                        <a href="{{ route('shared.student.template') }}" class="mt-3 inline-flex items-center px-3 py-2 bg-white border-2 border-purple-600 text-purple-600 hover:bg-purple-50 text-xs font-medium rounded transition-colors">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Download Template
+                        </a>
+                    </div>
+                    
+                    <!-- Upload Form -->
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-900 mb-2">Upload File</h4>
+                        <form action="{{ route('shared.student.import-with-parents') }}" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            
+                            <div class="border-2 border-dashed border-gray-300 rounded p-4 text-center hover:border-purple-500 transition-colors">
+                                <input type="file" name="import_file" id="student_import_file" accept=".csv,.xlsx,.xls" required class="hidden" onchange="updateStudentFileName(this)">
+                                <label for="student_import_file" class="cursor-pointer">
+                                    <svg class="w-10 h-10 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    <p class="text-xs text-gray-600 mb-1">Click to select file</p>
+                                    <p class="text-xs text-gray-500">CSV, XLSX, XLS (Max 2MB)</p>
+                                </label>
+                                <p id="studentFileName" class="mt-2 text-xs text-gray-700 font-medium hidden"></p>
+                            </div>
+                            
+                            <button type="submit" class="mt-3 w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-sm font-semibold rounded shadow hover:shadow-lg transition-all flex items-center justify-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                                Import Students
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Form -->
         <div class="bg-white rounded-lg shadow-lg">
             <form action="{{ url('/student-with-parents') }}" method="POST" id="studentParentForm" enctype="multipart/form-data">
@@ -1038,6 +1107,17 @@
             btn.disabled = false;
             btn.innerHTML = '<svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Generate New';
         });
+    }
+
+    // Update file name display when file is selected for bulk import
+    function updateStudentFileName(input) {
+        const fileNameDisplay = document.getElementById('studentFileName');
+        if (input.files && input.files[0]) {
+            fileNameDisplay.textContent = '📄 ' + input.files[0].name;
+            fileNameDisplay.classList.remove('hidden');
+        } else {
+            fileNameDisplay.classList.add('hidden');
+        }
     }
 </script>
 @endpush
