@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\SyllabusTopic;
 use App\Subject;
+use Illuminate\Support\Facades\DB;
+use App\Services\SyllabusPdfImportService;
 
 class TeacherSyllabusController extends Controller
 {
@@ -205,5 +207,112 @@ class TeacherSyllabusController extends Controller
 
         return redirect()->route('teacher.syllabus.index')
             ->with('success', 'Syllabus topic deleted successfully!');
+    }
+
+    /**
+     * Import syllabus topics from PDF file
+     */
+    public function importFromPdf(Request $request)
+    {
+        $teacher = auth()->user()->teacher;
+
+        if (!$teacher) {
+            return redirect()->route('home')->with('error', 'Teacher profile not found.');
+        }
+
+        // Validate request
+        $request->validate([
+            'subject_id' => 'required|exists:subjects,id',
+            'pdf_file' => 'required|file|mimes:pdf',
+        ]);
+
+        // Verify teacher teaches this subject
+        $subjectIds = $teacher->subjects->pluck('id');
+        if (!$subjectIds->contains($request->subject_id)) {
+            return back()->withErrors(['subject_id' => 'You can only import topics for subjects you teach.']);
+        }
+
+        try {
+            // Use transaction for data integrity
+            DB::beginTransaction();
+
+            // Use service to parse PDF and extract topics
+            $importService = new SyllabusPdfImportService();
+            $topics = $importService->importFromPdf(
+                $request->file('pdf_file')->getRealPath(),
+                $request->subject_id
+            );
+
+            if (empty($topics)) {
+                DB::rollBack();
+                return redirect()->route('teacher.syllabus.create')
+                    ->with('error', 'No topics found in PDF. Please check the PDF format.');
+            }
+
+            // Create syllabus topics
+            $importedCount = 0;
+            foreach ($topics as $topicData) {
+                SyllabusTopic::create($topicData);
+                $importedCount++;
+            }
+
+            DB::commit();
+
+            return redirect()->route('teacher.syllabus.index')
+                ->with('success', "{$importedCount} syllabus topics imported successfully.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return redirect()->route('teacher.syllabus.create')
+                ->with('error', 'Import failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Bulk delete syllabus topics
+     */
+    public function bulkDelete(Request $request)
+    {
+        $teacher = auth()->user()->teacher;
+
+        if (!$teacher) {
+            return redirect()->route('home')->with('error', 'Teacher profile not found.');
+        }
+
+        $request->validate([
+            'topic_ids' => 'required|array|min:1',
+            'topic_ids.*' => 'exists:syllabus_topics,id',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $subjectIds = $teacher->subjects->pluck('id');
+            
+            // Get topics and verify teacher owns them
+            $topics = SyllabusTopic::whereIn('id', $request->topic_ids)->get();
+            
+            foreach ($topics as $topic) {
+                if (!$subjectIds->contains($topic->subject_id)) {
+                    DB::rollBack();
+                    return back()->with('error', 'You can only delete topics for subjects you teach.');
+                }
+            }
+
+            // Delete topics
+            $count = SyllabusTopic::whereIn('id', $request->topic_ids)->delete();
+
+            DB::commit();
+
+            return redirect()->route('teacher.syllabus.index')
+                ->with('success', "{$count} topic(s) deleted successfully.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return redirect()->route('teacher.syllabus.index')
+                ->with('error', 'Bulk delete failed: ' . $e->getMessage());
+        }
     }
 }

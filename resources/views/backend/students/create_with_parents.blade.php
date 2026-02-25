@@ -1119,5 +1119,10 @@
             fileNameDisplay.classList.add('hidden');
         }
     }
+
+    // Auto-generate roll number on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        generateNewRollNumber();
+    });
 </script>
 @endpush

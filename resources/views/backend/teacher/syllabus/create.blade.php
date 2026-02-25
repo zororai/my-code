@@ -28,6 +28,70 @@
         </div>
     @endif
 
+    <!-- PDF Import Section -->
+    <div class="mb-6 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl shadow-sm border border-purple-200 p-6">
+        <div class="flex items-start space-x-4">
+            <div class="flex-shrink-0">
+                <svg class="w-10 h-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-lg font-bold text-gray-900 mb-2">Import Structured Syllabus from PDF</h3>
+                <p class="text-sm text-gray-600 mb-4">Upload a structured PDF syllabus document to automatically extract topics with learning objectives, content, activities, and resources.</p>
+                
+                <form action="{{ route('teacher.syllabus.import') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                    @csrf
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Subject *</label>
+                            <select name="subject_id" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                                <option value="">Select Subject</option>
+                                @foreach($subjects as $subject)
+                                    <option value="{{ $subject->id }}">{{ $subject->subject_code }} - {{ $subject->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">PDF File *</label>
+                            <input type="file" name="pdf_file" accept=".pdf" required 
+                                   class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+                        </div>
+                    </div>
+                    
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-gray-700">
+                        <strong class="text-blue-900">Required PDF Format:</strong>
+                        <ul class="mt-1 ml-4 list-disc space-y-1">
+                            <li>Must contain <strong>FORM 1</strong>, <strong>FORM 2</strong>, <strong>FORM 3</strong>, or <strong>FORM 4</strong> markers</li>
+                            <li>Each topic must start with <strong>TOPIC</strong> (e.g., "TOPIC 1:", "TOPIC 2:")</li>
+                            <li>Sections: <strong>LEARNING OBJECTIVES</strong>, <strong>CONTENT</strong>, <strong>SUGGESTED ACTIVITIES</strong>, <strong>SUGGESTED RESOURCES</strong></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="flex items-center justify-end pt-2">
+                        <button type="submit" class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg shadow transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                            </svg>
+                            Import from PDF
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="relative mb-6">
+        <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-gray-300"></div>
+        </div>
+        <div class="relative flex justify-center text-sm">
+            <span class="px-4 bg-gray-50 text-gray-500 font-medium">OR CREATE MANUALLY</span>
+        </div>
+    </div>
+
     <form action="{{ route('teacher.syllabus.store') }}" method="POST">
         @csrf
         <input type="hidden" name="multiple" value="1">
