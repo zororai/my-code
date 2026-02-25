@@ -13,6 +13,8 @@ use Illuminate\Validation\Rule;
 use Barryvdh\DomPDF\Facade as PDF;
 use App\Helpers\SmsHelper;
 use App\SchoolSetting;
+use App\Imports\StudentWithParentsImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class StudentController extends Controller
 {
@@ -836,5 +838,131 @@ class StudentController extends Controller
         $updatedCount = Student::where('is_new_student', true)->update(['is_new_student' => false]);
 
         return redirect()->route('student.index')->with('success', "{$updatedCount} student(s) updated from 'New Student' to 'Existing Student' successfully.");
+    }
+
+    /**
+     * Import students with parents from CSV/Excel file
+     */
+    public function importStudentsWithParents(Request $request)
+    {
+        $request->validate([
+            'import_file' => 'required|file|mimes:csv,xlsx,xls|max:2048',
+        ]);
+
+        try {
+            $import = new StudentWithParentsImport($this);
+            Excel::import($import, $request->file('import_file'));
+
+            $successCount = $import->getSuccessCount();
+            $errors = $import->getErrors();
+
+            if ($import->hasErrors()) {
+                $errorMessage = "Import completed with {$successCount} successful student(s) and " . count($errors) . " error(s):<br>";
+                foreach (array_slice($errors, 0, 10) as $error) {
+                    $errorMessage .= "• " . $error . "<br>";
+                }
+                if (count($errors) > 10) {
+                    $errorMessage .= "• ... and " . (count($errors) - 10) . " more error(s)";
+                }
+                
+                return redirect()->route('shared.student.create-with-parents')
+                    ->with('warning', $errorMessage)
+                    ->with('import_success_count', $successCount);
+            }
+
+            return redirect()->route('shared.student.create-with-parents')
+                ->with('success', "Successfully imported {$successCount} student(s) with parents.");
+
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            $errorMessage = "Validation errors found:<br>";
+            foreach (array_slice($failures, 0, 10) as $failure) {
+                $errorMessage .= "• Row {$failure->row()}: " . implode(', ', $failure->errors()) . "<br>";
+            }
+            
+            return redirect()->route('shared.student.create-with-parents')
+                ->with('error', $errorMessage);
+                
+        } catch (\Exception $e) {
+            return redirect()->route('shared.student.create-with-parents')
+                ->with('error', 'Import failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Download CSV template for bulk student import
+     */
+    public function downloadStudentTemplate()
+    {
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="student_import_template.csv"',
+        ];
+
+        $columns = [
+            'student_name',
+            'student_email',
+            'student_phone',
+            'student_gender',
+            'dateofbirth',
+            'class_name',
+            'student_type',
+            'curriculum_type',
+            'scholarship_percentage',
+            'chair',
+            'desk',
+            'parent_1_name',
+            'parent_1_phone',
+            'parent_2_name',
+            'parent_2_phone'
+        ];
+        
+        $callback = function() use ($columns) {
+            $file = fopen('php://output', 'w');
+            
+            // Add headers
+            fputcsv($file, $columns);
+            
+            // Add sample data rows
+            fputcsv($file, [
+                'John Doe',
+                'john.doe@example.com',
+                '+27123456789',
+                'male',
+                '2010-05-15',
+                'Form 1 Red',
+                'day',
+                'zimsec',
+                '0',
+                'A1',
+                'D1',
+                'Jane Doe',
+                '+27123456780',
+                'Robert Doe',
+                '+27123456781'
+            ]);
+            
+            fputcsv($file, [
+                'Mary Smith',
+                'mary.smith@example.com',
+                '+27987654321',
+                'female',
+                '2011-08-20',
+                'Form 1 Blue',
+                'boarding',
+                'cambridge',
+                '10',
+                'B2',
+                'D2',
+                'Sarah Smith',
+                '+27987654320',
+                '',
+                ''
+            ]);
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

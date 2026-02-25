@@ -29,6 +29,101 @@
     </div>
     @endif
 
+    @if(session('warning'))
+    <div class="mb-6 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-lg">
+        <div class="flex items-start">
+            <svg class="w-5 h-5 text-yellow-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+            <div class="text-yellow-700 text-sm">{!! session('warning') !!}</div>
+        </div>
+    </div>
+    @endif
+
+    @if(session('error'))
+    <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+        <div class="flex items-start">
+            <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+            </svg>
+            <div class="text-red-700 text-sm">{!! session('error') !!}</div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Bulk Import Section -->
+    <div class="mb-8 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-purple-500 to-indigo-600">
+            <h3 class="text-lg font-semibold text-white flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                Bulk Import Assignments
+            </h3>
+        </div>
+        
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Instructions -->
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-900 mb-3">How to Import</h4>
+                    <ol class="text-sm text-gray-600 space-y-2 list-decimal list-inside">
+                        <li>Download the CSV template below</li>
+                        <li>Fill in teacher email/name and subject codes</li>
+                        <li>Save the file as CSV format</li>
+                        <li>Upload the completed file</li>
+                    </ol>
+                    
+                    <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <p class="text-xs text-blue-800 font-medium mb-1">Required Columns:</p>
+                        <ul class="text-xs text-blue-700 space-y-1">
+                            <li><strong>teacher_email</strong> or <strong>teacher_name</strong> - To identify teacher</li>
+                            <li><strong>subject_code</strong> - Subject code (e.g., F1R EH)</li>
+                        </ul>
+                    </div>
+                    
+                    <a href="{{ route('admin.subjects.assign.template') }}" class="mt-4 inline-flex items-center px-4 py-2 bg-white border-2 border-purple-600 text-purple-600 hover:bg-purple-50 text-sm font-medium rounded-lg transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Download CSV Template
+                    </a>
+                </div>
+                
+                <!-- Upload Form -->
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-900 mb-3">Upload File</h4>
+                    <form action="{{ route('admin.subjects.assign.import') }}" method="POST" enctype="multipart/form-data" id="importForm">
+                        @csrf
+                        
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-500 transition-colors">
+                            <input type="file" name="import_file" id="import_file" accept=".csv,.xlsx,.xls" required class="hidden" onchange="updateFileName(this)">
+                            <label for="import_file" class="cursor-pointer">
+                                <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <p class="text-sm text-gray-600 mb-1">Click to select file</p>
+                                <p class="text-xs text-gray-500">CSV, XLSX, or XLS (Max 2MB)</p>
+                            </label>
+                            <p id="fileName" class="mt-3 text-sm text-gray-700 font-medium hidden"></p>
+                        </div>
+                        
+                        @error('import_file')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                        
+                        <button type="submit" class="mt-4 w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                            </svg>
+                            Import Assignments
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <!-- Assignment Form -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -403,5 +498,16 @@ document.getElementById('bulkUnassignDialog').addEventListener('click', function
         closeBulkUnassignDialog();
     }
 });
+
+// Update file name display when file is selected
+function updateFileName(input) {
+    const fileNameDisplay = document.getElementById('fileName');
+    if (input.files && input.files[0]) {
+        fileNameDisplay.textContent = '📄 ' + input.files[0].name;
+        fileNameDisplay.classList.remove('hidden');
+    } else {
+        fileNameDisplay.classList.add('hidden');
+    }
+}
 </script>
 @endsection

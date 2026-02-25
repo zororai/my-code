@@ -8,6 +8,9 @@ use App\Grade;
 use App\OnboardSubject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use App\Imports\TeacherSubjectAssignmentImport;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Validator;
 
 class AdminSubjectController extends Controller
 {
@@ -265,5 +268,83 @@ class AdminSubjectController extends Controller
         $subject->delete();
 
         return back()->with('success', 'Subject deleted successfully.');
+    }
+
+    /**
+     * Import teacher-subject assignments from CSV/Excel file.
+     */
+    public function importAssignments(Request $request)
+    {
+        $request->validate([
+            'import_file' => 'required|file|mimes:csv,xlsx,xls|max:2048',
+        ]);
+
+        try {
+            $import = new TeacherSubjectAssignmentImport();
+            Excel::import($import, $request->file('import_file'));
+
+            $successCount = $import->getSuccessCount();
+            $errors = $import->getErrors();
+
+            if ($import->hasErrors()) {
+                $errorMessage = "Import completed with {$successCount} successful assignment(s) and " . count($errors) . " error(s):<br>";
+                foreach (array_slice($errors, 0, 10) as $error) {
+                    $errorMessage .= "• " . $error . "<br>";
+                }
+                if (count($errors) > 10) {
+                    $errorMessage .= "• ... and " . (count($errors) - 10) . " more error(s)";
+                }
+                
+                return redirect()->route('admin.subjects.assign')
+                    ->with('warning', $errorMessage)
+                    ->with('import_success_count', $successCount);
+            }
+
+            return redirect()->route('admin.subjects.assign')
+                ->with('success', "Successfully imported {$successCount} teacher-subject assignment(s).");
+
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            $errorMessage = "Validation errors found:<br>";
+            foreach (array_slice($failures, 0, 10) as $failure) {
+                $errorMessage .= "• Row {$failure->row()}: " . implode(', ', $failure->errors()) . "<br>";
+            }
+            
+            return redirect()->route('admin.subjects.assign')
+                ->with('error', $errorMessage);
+                
+        } catch (\Exception $e) {
+            return redirect()->route('admin.subjects.assign')
+                ->with('error', 'Import failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Download CSV template for bulk teacher-subject assignment.
+     */
+    public function downloadTemplate()
+    {
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="teacher_subject_assignment_template.csv"',
+        ];
+
+        $columns = ['teacher_email', 'teacher_name', 'subject_code', 'subject_name'];
+        
+        $callback = function() use ($columns) {
+            $file = fopen('php://output', 'w');
+            
+            // Add headers
+            fputcsv($file, $columns);
+            
+            // Add sample data rows
+            fputcsv($file, ['john.doe@school.com', 'John Doe', 'F1R EH', 'English']);
+            fputcsv($file, ['john.doe@school.com', 'John Doe', 'F1R MS', 'Mathematics']);
+            fputcsv($file, ['jane.smith@school.com', 'Jane Smith', 'F2B SH', 'Shona']);
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

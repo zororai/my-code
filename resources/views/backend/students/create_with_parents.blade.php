@@ -59,6 +59,12 @@
             </div>
         @endif
 
+        @if(session('warning'))
+            <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-3 mb-3 rounded text-sm" role="alert">
+                <strong class="font-bold">Warning:</strong> {!! session('warning') !!}
+            </div>
+        @endif
+
         @if($errors->any())
             <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 mb-3 rounded text-sm" role="alert">
                 <strong class="font-bold">Errors:</strong>

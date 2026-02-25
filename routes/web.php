@@ -97,6 +97,8 @@ Route::group(['middleware' => ['auth', 'role:Admin|Teacher']], function () {
     Route::post('student', 'StudentController@store')->name('shared.student.store');
     Route::get('student-with-parents/create', 'StudentController@createWithParents')->name('shared.student.create-with-parents');
     Route::post('student-with-parents', 'StudentController@storeWithParents')->name('shared.student.store-with-parents');
+    Route::post('student-with-parents/import', 'StudentController@importStudentsWithParents')->name('shared.student.import-with-parents');
+    Route::get('student-with-parents/template', 'StudentController@downloadStudentTemplate')->name('shared.student.template');
     Route::get('student/generate-roll-number', 'StudentController@generateRollNumberAjax')->name('student.generate-roll-number');
 });
 
@@ -135,6 +137,8 @@ Route::group(['middleware' => ['auth','role_or_permission:Admin|sidebar-finance|
     Route::post('admin/subjects', 'AdminSubjectController@store')->name('admin.subjects.store');
     Route::get('admin/subjects/assign', 'AdminSubjectController@assignForm')->name('admin.subjects.assign');
     Route::post('admin/subjects/assign', 'AdminSubjectController@assign')->name('admin.subjects.assign.store');
+    Route::post('admin/subjects/assign/import', 'AdminSubjectController@importAssignments')->name('admin.subjects.assign.import');
+    Route::get('admin/subjects/assign/template', 'AdminSubjectController@downloadTemplate')->name('admin.subjects.assign.template');
     Route::delete('admin/subjects/unassign/{id}', 'AdminSubjectController@unassign')->name('admin.subjects.unassign');
     Route::post('admin/subjects/bulk-unassign', 'AdminSubjectController@bulkUnassign')->name('admin.subjects.bulkUnassign');
     Route::get('admin/subjects/{subject}/edit', 'AdminSubjectController@edit')->name('admin.subjects.edit');
