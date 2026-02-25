@@ -2040,13 +2040,27 @@ class FinanceController extends Controller
             ];
         }
 
-        // Get student's creation date to only count terms after enrollment
+        // Get student's enrollment term info (use created_at to determine which term they started)
         $studentCreatedAt = $student->created_at;
 
         foreach ($allTerms as $term) {
-            // Skip terms before student was enrolled
-            if ($studentCreatedAt && $term->created_at < $studentCreatedAt) {
-                continue;
+            // Skip terms that ended before the student enrolled
+            // A term is considered "before enrollment" if the term's year is less than student's enrollment year
+            // OR if same year but term period is before the enrollment period
+            if ($studentCreatedAt) {
+                $studentYear = $studentCreatedAt->year;
+                $termYear = intval($term->year);
+                
+                // If term year is before student's enrollment year, skip
+                if ($termYear < $studentYear) {
+                    continue;
+                }
+                
+                // If same year, check if term was created significantly before student (more than 3 months)
+                // This handles cases where student joins mid-year
+                if ($termYear == $studentYear && $term->created_at->diffInMonths($studentCreatedAt) > 3 && $term->created_at < $studentCreatedAt) {
+                    continue;
+                }
             }
 
             $termFees = $this->calculateStudentFees($student, $term);
