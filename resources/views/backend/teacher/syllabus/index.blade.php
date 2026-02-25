@@ -98,11 +98,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <a href="{{ route('teacher.syllabus.edit', $topic->id) }}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
-                                <form action="{{ route('teacher.syllabus.destroy', $topic->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this topic?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
-                                </form>
+                                <button type="button" onclick="deleteTopic({{ $topic->id }})" class="text-red-600 hover:text-red-900">Delete</button>
                             </td>
                         </tr>
                         @empty
@@ -171,6 +167,39 @@ function bulkDelete() {
     if (confirm(`Are you sure you want to delete ${checkboxes.length} topic(s)?`)) {
         document.getElementById('bulkDeleteForm').submit();
     }
+}
+
+// Handle individual delete
+function deleteTopic(topicId) {
+    console.log('Delete clicked for topic:', topicId);
+    
+    if (!confirm('Are you sure you want to delete this topic?')) {
+        return;
+    }
+    
+    // Create and submit a form for delete
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/teacher/syllabus/' + topicId;
+    form.style.display = 'none';
+    
+    console.log('Form action:', form.action);
+    
+    const csrfToken = document.createElement('input');
+    csrfToken.type = 'hidden';
+    csrfToken.name = '_token';
+    csrfToken.value = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
+    form.appendChild(csrfToken);
+    
+    const methodField = document.createElement('input');
+    methodField.type = 'hidden';
+    methodField.name = '_method';
+    methodField.value = 'DELETE';
+    form.appendChild(methodField);
+    
+    document.body.appendChild(form);
+    console.log('Submitting form...');
+    form.submit();
 }
 </script>
 @endsection

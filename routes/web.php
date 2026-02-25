@@ -839,9 +839,9 @@ Route::group(['middleware' => ['auth','role:Teacher']], function ()
     // Teacher Syllabus Topics Management Routes
     Route::get('/teacher/syllabus', 'TeacherSyllabusController@index')->name('teacher.syllabus.index');
     Route::get('/teacher/syllabus/create', 'TeacherSyllabusController@create')->name('teacher.syllabus.create');
-    Route::post('/teacher/syllabus', 'TeacherSyllabusController@store')->name('teacher.syllabus.store');
     Route::post('/teacher/syllabus/import', 'TeacherSyllabusController@importFromPdf')->name('teacher.syllabus.import');
     Route::post('/teacher/syllabus/bulk-delete', 'TeacherSyllabusController@bulkDelete')->name('teacher.syllabus.bulk-delete');
+    Route::post('/teacher/syllabus', 'TeacherSyllabusController@store')->name('teacher.syllabus.store');
     Route::get('/teacher/syllabus/{id}/edit', 'TeacherSyllabusController@edit')->name('teacher.syllabus.edit');
     Route::put('/teacher/syllabus/{id}', 'TeacherSyllabusController@update')->name('teacher.syllabus.update');
     Route::delete('/teacher/syllabus/{id}', 'TeacherSyllabusController@destroy')->name('teacher.syllabus.destroy');

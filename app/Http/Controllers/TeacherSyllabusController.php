@@ -191,10 +191,15 @@ class TeacherSyllabusController extends Controller
         $teacher = auth()->user()->teacher;
 
         if (!$teacher) {
-            return redirect()->route('home')->with('error', 'Teacher profile not found.');
+            return redirect()->route('teacher.syllabus.index')->with('error', 'Teacher profile not found.');
         }
 
-        $topic = SyllabusTopic::findOrFail($id);
+        $topic = SyllabusTopic::find($id);
+        
+        if (!$topic) {
+            return redirect()->route('teacher.syllabus.index')
+                ->with('error', 'Topic not found.');
+        }
         
         // Verify teacher teaches this subject
         $subjectIds = $teacher->subjects->pluck('id');
@@ -203,10 +208,14 @@ class TeacherSyllabusController extends Controller
                 ->with('error', 'You can only delete topics for subjects you teach.');
         }
 
-        $topic->delete();
-
-        return redirect()->route('teacher.syllabus.index')
-            ->with('success', 'Syllabus topic deleted successfully!');
+        try {
+            $topic->delete();
+            return redirect()->route('teacher.syllabus.index')
+                ->with('success', 'Syllabus topic deleted successfully!');
+        } catch (\Exception $e) {
+            return redirect()->route('teacher.syllabus.index')
+                ->with('error', 'Failed to delete topic: ' . $e->getMessage());
+        }
     }
 
     /**
