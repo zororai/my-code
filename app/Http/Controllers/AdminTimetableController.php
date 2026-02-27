@@ -151,6 +151,7 @@ class AdminTimetableController extends Controller
             'practical_subjects.*' => 'nullable|exists:subjects,id',
             'practicals_day_2periods' => 'nullable|string',
             'practicals_day_4periods' => 'nullable|string',
+            'randomize_practical_days' => 'nullable',
         ]);
 
         $classIds = $validated['class_ids'];

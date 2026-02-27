@@ -240,6 +240,33 @@
                             <label for="include_practicals" class="ml-3 text-sm font-medium text-gray-700">Include Practicals</label>
                         </div>
                         
+                        <div id="practicals-warning" class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg {{ old('include_practicals') ? '' : 'hidden' }}">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-3 flex-1">
+                                    <p class="text-sm font-medium text-blue-800">
+                                        <strong>Multiple Classes - Avoid Teacher Conflicts</strong>
+                                    </p>
+                                    <p class="text-xs text-blue-700 mt-1">
+                                        When generating for multiple classes, enable auto-randomization to assign different practical days to each class automatically.
+                                    </p>
+                                    <div class="mt-3">
+                                        <label class="inline-flex items-center p-2 bg-white border-2 border-blue-300 rounded-lg cursor-pointer hover:bg-blue-100 transition-all">
+                                            <input type="checkbox" name="randomize_practical_days" id="randomize_practical_days" value="1" 
+                                                   class="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded"
+                                                   {{ old('randomize_practical_days', true) ? 'checked' : '' }}>
+                                            <span class="ml-2 text-sm font-medium text-blue-800">Auto-randomize days for each class</span>
+                                        </label>
+                                        <p class="text-xs text-blue-600 mt-1 ml-6">Each class will get different days to prevent teacher conflicts</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div id="practicals-options" class="space-y-3 {{ old('include_practicals') ? '' : 'hidden' }}">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Select Practical Subjects</label>
@@ -519,8 +546,12 @@
     // Toggle Practicals options
     const includePracticals = document.getElementById('include_practicals');
     const practicalsOptions = document.getElementById('practicals-options');
+    const practicalsWarning = document.getElementById('practicals-warning');
     includePracticals.addEventListener('change', function() {
         practicalsOptions.classList.toggle('hidden', !this.checked);
+        if (practicalsWarning) {
+            practicalsWarning.classList.toggle('hidden', !this.checked);
+        }
     });
 </script>
 @endsection
