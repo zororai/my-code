@@ -699,10 +699,11 @@ class AdminTimetableController extends Controller
         while ($currentMins < $endMins) {
             // Check if we're at PRACTICALS time (STANDALONE - separate from clubs)
             if ($practicalsOnThisDay && !$addedPracticals && $currentMins >= $practicalsStartMins && $currentMins < $practicalsEndMins) {
-                // Get the practical subject for this class
-                $practicalSubject = Subject::with('teacher')->whereIn('id', $practicalSubjects)->first();
+                // Get ALL practical subjects with their teachers
+                $practicalSubjectsData = Subject::with('teacher')->whereIn('id', $practicalSubjects)->get();
                 
                 // Add the specified number of practical periods (2 or 4)
+                // Each practical subject gets its own slot at the same time (they share the time slot)
                 $practicalSlotStart = $practicalsStartMins;
                 for ($p = 0; $p < $practicalPeriods; $p++) {
                     $practicalSlotEnd = $practicalSlotStart + $periodDuration;
@@ -710,14 +711,17 @@ class AdminTimetableController extends Controller
                         $practicalSlotEnd = $practicalsEndMins;
                     }
                     
-                    $structure[] = [
-                        'start_time' => $fromMinutes($practicalSlotStart),
-                        'end_time' => $fromMinutes($practicalSlotEnd),
-                        'slot_type' => 'practical',
-                        'slot_name' => 'Practicals',
-                        'subject_id' => $practicalSubject ? $practicalSubject->id : null,
-                        'teacher_id' => $practicalSubject && $practicalSubject->teacher ? $practicalSubject->teacher_id : null,
-                    ];
+                    // Create a slot for EACH practical subject (all teachers share the same time)
+                    foreach ($practicalSubjectsData as $practicalSubject) {
+                        $structure[] = [
+                            'start_time' => $fromMinutes($practicalSlotStart),
+                            'end_time' => $fromMinutes($practicalSlotEnd),
+                            'slot_type' => 'practical',
+                            'slot_name' => 'Practicals',
+                            'subject_id' => $practicalSubject->id,
+                            'teacher_id' => $practicalSubject->teacher ? $practicalSubject->teacher_id : null,
+                        ];
+                    }
                     
                     $practicalSlotStart = $practicalSlotEnd;
                     if ($practicalSlotStart >= $practicalsEndMins) break;
@@ -1034,6 +1038,7 @@ class AdminTimetableController extends Controller
                     ->addMinutes($periodDuration * $periodsNeeded)
                     ->format('H:i:s');
                 
+                // Check against existing timetable records (other classes)
                 $teacherHasConflict = Timetable::where('teacher_id', $teacherId)
                     ->where('day', $day)
                     ->where('academic_year', $settings->academic_year)
@@ -1043,6 +1048,21 @@ class AdminTimetableController extends Controller
                               ->where('end_time', '>', $startTime);
                     })
                     ->exists();
+                
+                if ($teacherHasConflict) {
+                    continue;
+                }
+                
+                // ALSO check against current day structure (e.g., practicals already in structure)
+                // This prevents teachers from being assigned to regular slots when they have practicals
+                foreach ($dayStructure as $existingSlot) {
+                    if ($existingSlot['teacher_id'] == $teacherId && 
+                        $existingSlot['start_time'] < $endTime && 
+                        $existingSlot['end_time'] > $startTime) {
+                        $teacherHasConflict = true;
+                        break;
+                    }
+                }
                 
                 if ($teacherHasConflict) {
                     continue;

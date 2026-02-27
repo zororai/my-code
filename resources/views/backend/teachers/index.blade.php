@@ -20,10 +20,30 @@
             </div>
         </div>
 
+        <!-- Search Bar -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+                <input type="text" id="teacher-search" 
+                       class="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm"
+                       placeholder="Search teachers by name, email, subject, or phone...">
+                <button type="button" id="clear-teacher-search" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 hidden">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <p class="text-xs text-gray-500 mt-2" id="teacher-search-count"></p>
+        </div>
+
         <!-- Teachers Table -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
+                <table class="min-w-full divide-y divide-gray-200" id="teachers-table">
                     <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
                         <tr>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
@@ -54,7 +74,11 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @forelse ($teachers as $teacher)
-                            <tr class="hover:bg-gray-50 transition-colors">
+                            <tr class="teacher-row hover:bg-gray-50 transition-colors" 
+                                data-name="{{ strtolower($teacher->user->name) }}" 
+                                data-email="{{ strtolower($teacher->user->email) }}" 
+                                data-phone="{{ strtolower($teacher->phone ?? '') }}"
+                                data-subjects="{{ strtolower($teacher->subjects->pluck('name')->implode(' ')) }} {{ strtolower($teacher->subjects->pluck('subject_code')->implode(' ')) }}">
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm font-semibold text-gray-900">{{ $teacher->user->name }}</div>
                                 </td>
@@ -215,6 +239,67 @@
             event.preventDefault();
             $( "#deletemodal" ).toggleClass( "hidden" );
         })
+        
+        // Teacher search functionality
+        const searchInput = document.getElementById('teacher-search');
+        const clearBtn = document.getElementById('clear-teacher-search');
+        const searchCount = document.getElementById('teacher-search-count');
+        const teacherRows = document.querySelectorAll('.teacher-row');
+        const totalTeachers = teacherRows.length;
+        
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase().trim();
+                
+                // Show/hide clear button
+                if (searchTerm) {
+                    clearBtn.classList.remove('hidden');
+                } else {
+                    clearBtn.classList.add('hidden');
+                }
+                
+                let visibleCount = 0;
+                
+                teacherRows.forEach(function(row) {
+                    const name = row.getAttribute('data-name');
+                    const email = row.getAttribute('data-email');
+                    const phone = row.getAttribute('data-phone');
+                    const subjects = row.getAttribute('data-subjects');
+                    
+                    if (name.includes(searchTerm) || 
+                        email.includes(searchTerm) || 
+                        phone.includes(searchTerm) || 
+                        subjects.includes(searchTerm)) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                
+                // Update count
+                if (searchTerm) {
+                    if (visibleCount > 0) {
+                        searchCount.textContent = `Found ${visibleCount} teacher(s) matching "${searchInput.value}"`;
+                        searchCount.classList.remove('text-gray-500', 'text-red-500');
+                        searchCount.classList.add('text-green-600');
+                    } else {
+                        searchCount.textContent = `No teachers found matching "${searchInput.value}"`;
+                        searchCount.classList.remove('text-gray-500', 'text-green-600');
+                        searchCount.classList.add('text-red-500');
+                    }
+                } else {
+                    searchCount.textContent = '';
+                }
+            });
+            
+            // Clear search
+            clearBtn.addEventListener('click', function() {
+                searchInput.value = '';
+                searchInput.dispatchEvent(new Event('input'));
+                searchInput.focus();
+            });
+        }
     })
 </script>
 @endpush
