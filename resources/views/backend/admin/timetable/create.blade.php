@@ -240,29 +240,20 @@
                             <label for="include_practicals" class="ml-3 text-sm font-medium text-gray-700">Include Practicals</label>
                         </div>
                         
-                        <div id="practicals-warning" class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg {{ old('include_practicals') ? '' : 'hidden' }}">
+                        <div id="practicals-warning" class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg {{ old('include_practicals') ? '' : 'hidden' }}">
                             <div class="flex items-start">
                                 <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                    <svg class="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                                     </svg>
                                 </div>
                                 <div class="ml-3 flex-1">
-                                    <p class="text-sm font-medium text-blue-800">
-                                        <strong>Multiple Classes - Avoid Teacher Conflicts</strong>
+                                    <p class="text-sm font-medium text-green-800">
+                                        <strong>✓ Auto-Randomization Enabled</strong>
                                     </p>
-                                    <p class="text-xs text-blue-700 mt-1">
-                                        When generating for multiple classes, enable auto-randomization to assign different practical days to each class automatically.
+                                    <p class="text-xs text-green-700 mt-1">
+                                        Each class will automatically get different day combinations to prevent teacher conflicts. Practicals are scheduled after lunch.
                                     </p>
-                                    <div class="mt-3">
-                                        <label class="inline-flex items-center p-2 bg-white border-2 border-blue-300 rounded-lg cursor-pointer hover:bg-blue-100 transition-all">
-                                            <input type="checkbox" name="randomize_practical_days" id="randomize_practical_days" value="1" 
-                                                   class="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded"
-                                                   {{ old('randomize_practical_days', true) ? 'checked' : '' }}>
-                                            <span class="ml-2 text-sm font-medium text-blue-800">Auto-randomize days for each class</span>
-                                        </label>
-                                        <p class="text-xs text-blue-600 mt-1 ml-6">Each class will get different days to prevent teacher conflicts</p>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -271,9 +262,24 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Select Practical Subjects</label>
                                 <p class="text-xs text-gray-500 mb-3">These subjects will get 2 periods on one day and 4 periods on another day (total 6 periods/week)</p>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto p-3 border border-purple-200 rounded-xl bg-purple-50">
+                                
+                                <!-- Search Bar -->
+                                <div class="mb-3">
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                            </svg>
+                                        </div>
+                                        <input type="text" id="practical-subjects-search" 
+                                               class="block w-full pl-10 pr-3 py-2 border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-sm"
+                                               placeholder="Search subjects by name or code...">
+                                    </div>
+                                </div>
+                                
+                                <div id="practical-subjects-list" class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto p-3 border border-purple-200 rounded-xl bg-purple-50">
                                     @foreach($subjects as $subject)
-                                        <label class="inline-flex items-center p-3 bg-white border border-purple-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-all">
+                                        <label class="practical-subject-item inline-flex items-center p-3 bg-white border border-purple-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-all" data-subject-name="{{ strtolower($subject->name) }}" data-subject-code="{{ strtolower($subject->subject_code) }}">
                                             <input type="checkbox" name="practical_subjects[]" value="{{ $subject->id }}" 
                                                    class="w-4 h-4 text-purple-600 focus:ring-purple-500 rounded"
                                                    {{ (is_array(old('practical_subjects')) && in_array($subject->id, old('practical_subjects'))) || $subject->is_practical ? 'checked' : '' }}>
@@ -284,32 +290,30 @@
                                         </label>
                                     @endforeach
                                 </div>
+                                <p class="text-xs text-gray-500 mt-2" id="practical-subjects-count">{{ count($subjects) }} subject(s) available</p>
                             </div>
                             
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Day for 2 Periods</label>
-                                    <select name="practicals_day_2periods" class="w-full px-4 py-3 border border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
-                                        @foreach(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as $day)
-                                            <option value="{{ $day }}" {{ old('practicals_day_2periods', 'Monday') == $day ? 'selected' : '' }}>{{ $day }}</option>
-                                        @endforeach
-                                    </select>
-                                    <p class="text-xs text-gray-500 mt-1">This day will have 2 practical periods</p>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Day for 4 Periods</label>
-                                    <select name="practicals_day_4periods" class="w-full px-4 py-3 border border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
-                                        @foreach(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as $day)
-                                            <option value="{{ $day }}" {{ old('practicals_day_4periods', 'Wednesday') == $day ? 'selected' : '' }}>{{ $day }}</option>
-                                        @endforeach
-                                    </select>
-                                    <p class="text-xs text-gray-500 mt-1">This day will have 4 practical periods</p>
-                                </div>
+                            <div class="bg-purple-100 border border-purple-300 rounded-lg p-3 mb-4">
+                                <p class="text-sm text-purple-800 font-medium mb-2">📅 Practicals Scheduling:</p>
+                                <ul class="text-xs text-purple-700 space-y-1 list-disc list-inside">
+                                    <li><strong>2 periods</strong> on one day + <strong>4 periods</strong> on another day = 6 periods/week</li>
+                                    <li>Practicals are scheduled <strong>after lunch</strong> automatically</li>
+                                    <li>Duration calculated based on your subject duration setting</li>
+                                </ul>
                             </div>
-                            <div class="bg-purple-100 border border-purple-300 rounded-lg p-3">
-                                <p class="text-xs text-purple-800">
-                                    <strong>Example:</strong> If you select Monday for 2 periods and Wednesday for 4 periods, practicals will be scheduled on alternating days with different durations.
-                                </p>
+                            
+                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                <p class="text-xs text-gray-700 font-medium mb-2">Day Combinations (auto-randomized for multiple classes):</p>
+                                <div class="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                                    <div>• Monday (2) + Wednesday (4)</div>
+                                    <div>• Tuesday (2) + Thursday (4)</div>
+                                    <div>• Monday (2) + Thursday (4)</div>
+                                    <div>• Tuesday (2) + Friday (4)</div>
+                                    <div>• Wednesday (2) + Friday (4)</div>
+                                    <div>• Monday (2) + Friday (4)</div>
+                                    <div>• Tuesday (2) + Wednesday (4)</div>
+                                    <div>• Wednesday (2) + Thursday (4)</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -553,5 +557,34 @@
             practicalsWarning.classList.toggle('hidden', !this.checked);
         }
     });
+    
+    // Search functionality for practical subjects
+    const practicalSearchInput = document.getElementById('practical-subjects-search');
+    const practicalSubjectItems = document.querySelectorAll('.practical-subject-item');
+    const practicalSubjectsCount = document.getElementById('practical-subjects-count');
+    
+    if (practicalSearchInput) {
+        practicalSearchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            let visibleCount = 0;
+            
+            practicalSubjectItems.forEach(function(item) {
+                const subjectName = item.getAttribute('data-subject-name');
+                const subjectCode = item.getAttribute('data-subject-code');
+                
+                if (subjectName.includes(searchTerm) || subjectCode.includes(searchTerm)) {
+                    item.style.display = '';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            // Update count
+            if (practicalSubjectsCount) {
+                practicalSubjectsCount.textContent = visibleCount + ' subject(s) found';
+            }
+        });
+    }
 </script>
 @endsection

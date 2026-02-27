@@ -47,7 +47,7 @@
 
     <!-- Filter Section -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
-        <form method="GET" action="{{ route('admin.timetable.master') }}" class="flex flex-wrap items-end gap-4">
+        <form method="GET" action="{{ route('admin.timetable.master') }}" class="flex flex-wrap items-end gap-4 mb-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Academic Year</label>
                 <select name="year" class="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500">
@@ -69,6 +69,27 @@
                 Filter
             </button>
         </form>
+        
+        <!-- Subject Search Bar -->
+        <div class="border-t border-gray-200 pt-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Search Subject</label>
+            <div class="relative max-w-md">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+                <input type="text" id="subject-search" 
+                       class="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-sm"
+                       placeholder="Search for a subject (e.g., Mathematics, Building)...">
+                <button type="button" id="clear-search" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 hidden">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <p class="text-xs text-gray-500 mt-1" id="search-results-count"></p>
+        </div>
     </div>
 
     @if(count($classTimetables) === 0)
@@ -145,6 +166,7 @@
                                             <td class="px-1 py-1 text-center border-r border-gray-50
                                                 @if($timeSlot['slot_type'] === 'break') bg-amber-50
                                                 @elseif($timeSlot['slot_type'] === 'lunch') bg-orange-50
+                                                @elseif($timeSlot['slot_type'] === 'practical') bg-purple-50
                                                 @elseif($timeSlot['slot_type'] === 'clubs') bg-pink-50
                                                 @elseif($timeSlot['slot_type'] === 'special') bg-cyan-50
                                                 @endif">
@@ -153,6 +175,20 @@
                                                         <span class="text-amber-600 text-xs font-medium">Break</span>
                                                     @elseif($slot->slot_type === 'lunch')
                                                         <span class="text-orange-600 text-xs font-medium">Lunch</span>
+                                                    @elseif($slot->slot_type === 'practical')
+                                                        <div class="bg-purple-100 rounded-lg px-1 py-1 border border-purple-300">
+                                                            <div class="text-purple-800 text-xs font-bold">🔧 PRACTICAL</div>
+                                                            @if($slot->subject)
+                                                                <div class="font-semibold text-purple-900 text-xs" title="{{ $slot->subject->name }}">
+                                                                    {{ \Illuminate\Support\Str::limit($slot->subject->name, 12) }}
+                                                                </div>
+                                                                @if($slot->teacher && $slot->teacher->user)
+                                                                    <div class="text-purple-600 text-xs" title="{{ $slot->teacher->user->name }}">
+                                                                        {{ \Illuminate\Support\Str::limit($slot->teacher->user->name, 10) }}
+                                                                    </div>
+                                                                @endif
+                                                            @endif
+                                                        </div>
                                                     @elseif($slot->slot_type === 'clubs')
                                                         <div class="bg-pink-100 rounded-lg px-1 py-1">
                                                             <span class="text-pink-700 text-xs font-medium">{{ $slot->slot_name ?? 'Clubs' }}</span>
@@ -196,6 +232,10 @@
                 <div class="flex items-center gap-2">
                     <div class="w-6 h-6 bg-gradient-to-br from-emerald-100 to-teal-100 rounded"></div>
                     <span class="text-sm text-gray-600">Subject Lesson</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 bg-purple-100 rounded border border-purple-300"></div>
+                    <span class="text-sm text-gray-600">Practicals</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <div class="w-6 h-6 bg-amber-50 rounded border border-amber-200"></div>
@@ -413,6 +453,82 @@
             if (currentFontSize >= 100) {
                 cell.style.padding = (currentFontSize / 100) * 0.5 + 'rem ' + (currentFontSize / 100) * 0.25 + 'rem';
             }
+        });
+    }
+    
+    // Subject Search Functionality
+    const subjectSearchInput = document.getElementById('subject-search');
+    const clearSearchBtn = document.getElementById('clear-search');
+    const searchResultsCount = document.getElementById('search-results-count');
+    
+    if (subjectSearchInput) {
+        subjectSearchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            // Show/hide clear button
+            if (searchTerm) {
+                clearSearchBtn.classList.remove('hidden');
+            } else {
+                clearSearchBtn.classList.add('hidden');
+            }
+            
+            // Get all subject cells
+            const subjectCells = document.querySelectorAll('.bg-gradient-to-br.from-emerald-100.to-teal-100');
+            let matchCount = 0;
+            
+            // Reset all cells
+            subjectCells.forEach(cell => {
+                cell.style.outline = '';
+                cell.style.outlineOffset = '';
+                cell.style.backgroundColor = '';
+                cell.style.transform = '';
+                cell.style.transition = '';
+            });
+            
+            if (searchTerm) {
+                subjectCells.forEach(cell => {
+                    const subjectNameElement = cell.querySelector('.font-semibold.text-emerald-800');
+                    if (subjectNameElement) {
+                        const subjectName = subjectNameElement.textContent.toLowerCase();
+                        const fullSubjectName = subjectNameElement.getAttribute('title')?.toLowerCase() || subjectName;
+                        
+                        if (subjectName.includes(searchTerm) || fullSubjectName.includes(searchTerm)) {
+                            // Highlight matching cells
+                            cell.style.outline = '3px solid #f59e0b';
+                            cell.style.outlineOffset = '2px';
+                            cell.style.backgroundColor = '#fef3c7';
+                            cell.style.transform = 'scale(1.05)';
+                            cell.style.transition = 'all 0.2s ease';
+                            matchCount++;
+                            
+                            // Scroll first match into view
+                            if (matchCount === 1) {
+                                cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                        }
+                    }
+                });
+                
+                // Update results count
+                if (matchCount > 0) {
+                    searchResultsCount.textContent = `Found ${matchCount} occurrence(s) of "${this.value}"`;
+                    searchResultsCount.classList.remove('text-gray-500');
+                    searchResultsCount.classList.add('text-green-600', 'font-medium');
+                } else {
+                    searchResultsCount.textContent = `No results found for "${this.value}"`;
+                    searchResultsCount.classList.remove('text-green-600', 'font-medium');
+                    searchResultsCount.classList.add('text-red-500');
+                }
+            } else {
+                searchResultsCount.textContent = '';
+            }
+        });
+        
+        // Clear search functionality
+        clearSearchBtn.addEventListener('click', function() {
+            subjectSearchInput.value = '';
+            subjectSearchInput.dispatchEvent(new Event('input'));
+            subjectSearchInput.focus();
         });
     }
 </script>

@@ -270,6 +270,35 @@
                                                 <div class="bg-orange-100 border border-orange-200 rounded-xl p-3 text-center">
                                                     <p class="font-semibold text-orange-700">🍽️ Lunch</p>
                                                 </div>
+                                            @elseif($slot->slot_type == 'practical')
+                                                <div class="bg-purple-100 border border-purple-300 rounded-xl p-3 h-full">
+                                                    <div class="flex items-center justify-center gap-1 mb-1">
+                                                        <span class="text-lg">🔧</span>
+                                                        <p class="font-bold text-purple-800 text-xs uppercase">Practical</p>
+                                                    </div>
+                                                    @if($slot->subject)
+                                                        <p class="font-semibold text-gray-800 text-sm truncate">
+                                                            {{ $slot->subject->name }}
+                                                        </p>
+                                                        @php
+                                                            $teacherName = null;
+                                                            if ($slot->teacher) {
+                                                                $teacherName = $slot->teacher->user->name ?? null;
+                                                            } elseif ($slot->subject && $slot->subject->teacher) {
+                                                                $teacherName = $slot->subject->teacher->user->name ?? null;
+                                                            }
+                                                        @endphp
+                                                        @if($teacherName)
+                                                            <p class="text-xs text-gray-600 mt-1 truncate">
+                                                                {{ $teacherName }}
+                                                            </p>
+                                                        @else
+                                                            <p class="text-xs text-red-400 mt-1">No teacher assigned</p>
+                                                        @endif
+                                                    @else
+                                                        <p class="text-xs text-gray-500">No subject assigned</p>
+                                                    @endif
+                                                </div>
                                             @elseif($slot->slot_type == 'clubs')
                                                 <div class="bg-pink-100 border border-pink-200 rounded-xl p-3 text-center">
                                                     <p class="font-semibold text-pink-700">🎭 {{ $slot->slot_name ?? 'Clubs' }}</p>
@@ -331,6 +360,10 @@
         <div class="flex items-center gap-2">
             <div class="w-4 h-4 bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded"></div>
             <span class="text-sm text-gray-600">Subject</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <div class="w-4 h-4 bg-purple-100 border border-purple-300 rounded"></div>
+            <span class="text-sm text-gray-600">Practicals</span>
         </div>
         <div class="flex items-center gap-2">
             <div class="w-4 h-4 bg-amber-100 border border-amber-200 rounded"></div>
