@@ -14,7 +14,7 @@ class AddIsNewStudentToStudentsTable extends Migration
     public function up()
     {
         Schema::table('students', function (Blueprint $table) {
-            //
+            $table->boolean('is_new_student')->default(false)->after('scholarship_percentage');
         });
     }
 
@@ -26,7 +26,7 @@ class AddIsNewStudentToStudentsTable extends Migration
     public function down()
     {
         Schema::table('students', function (Blueprint $table) {
-            //
+            $table->dropColumn('is_new_student');
         });
     }
 }
