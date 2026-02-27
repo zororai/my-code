@@ -15,7 +15,8 @@ class Subject extends Model
         'double_lessons_per_week',
         'triple_lessons_per_week',
         'quad_lessons_per_week',
-        'periods_per_week'
+        'periods_per_week',
+        'is_practical'
     ];
 
     public function teacher()

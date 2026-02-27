@@ -222,6 +222,72 @@
                     </div>
                 </div>
 
+                <!-- Practicals Section -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                        </svg>
+                        Practicals
+                    </h2>
+                    <p class="text-sm text-gray-500 mb-4">Select subjects that are practicals (e.g., Building, Agriculture). Practicals will get 6 periods per week (2 periods + 4 periods on alternating days) in the Clubs/Activities section and won't occupy regular timetable slots.</p>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center">
+                            <input type="checkbox" name="include_practicals" id="include_practicals" value="1" 
+                                   class="w-4 h-4 text-purple-600 focus:ring-purple-500 rounded"
+                                   {{ old('include_practicals') ? 'checked' : '' }}>
+                            <label for="include_practicals" class="ml-3 text-sm font-medium text-gray-700">Include Practicals</label>
+                        </div>
+                        
+                        <div id="practicals-options" class="space-y-3 {{ old('include_practicals') ? '' : 'hidden' }}">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Select Practical Subjects</label>
+                                <p class="text-xs text-gray-500 mb-3">These subjects will get 2 periods on one day and 4 periods on another day (total 6 periods/week)</p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto p-3 border border-purple-200 rounded-xl bg-purple-50">
+                                    @foreach($subjects as $subject)
+                                        <label class="inline-flex items-center p-3 bg-white border border-purple-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-all">
+                                            <input type="checkbox" name="practical_subjects[]" value="{{ $subject->id }}" 
+                                                   class="w-4 h-4 text-purple-600 focus:ring-purple-500 rounded"
+                                                   {{ (is_array(old('practical_subjects')) && in_array($subject->id, old('practical_subjects'))) || $subject->is_practical ? 'checked' : '' }}>
+                                            <div class="ml-2">
+                                                <span class="text-sm font-medium text-gray-800">{{ $subject->name }}</span>
+                                                <span class="text-xs text-gray-500 ml-1">({{ $subject->subject_code }})</span>
+                                            </div>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Day for 2 Periods</label>
+                                    <select name="practicals_day_2periods" class="w-full px-4 py-3 border border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
+                                        @foreach(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as $day)
+                                            <option value="{{ $day }}" {{ old('practicals_day_2periods', 'Monday') == $day ? 'selected' : '' }}>{{ $day }}</option>
+                                        @endforeach
+                                    </select>
+                                    <p class="text-xs text-gray-500 mt-1">This day will have 2 practical periods</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Day for 4 Periods</label>
+                                    <select name="practicals_day_4periods" class="w-full px-4 py-3 border border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
+                                        @foreach(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as $day)
+                                            <option value="{{ $day }}" {{ old('practicals_day_4periods', 'Wednesday') == $day ? 'selected' : '' }}>{{ $day }}</option>
+                                        @endforeach
+                                    </select>
+                                    <p class="text-xs text-gray-500 mt-1">This day will have 4 practical periods</p>
+                                </div>
+                            </div>
+                            <div class="bg-purple-100 border border-purple-300 rounded-lg p-3">
+                                <p class="text-xs text-purple-800">
+                                    <strong>Example:</strong> If you select Monday for 2 periods and Wednesday for 4 periods, practicals will be scheduled on alternating days with different durations.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Special Slots Section -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                     <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -448,6 +514,13 @@
     const afterLunchOptions = document.getElementById('after-lunch-options');
     includeAfterLunch.addEventListener('change', function() {
         afterLunchOptions.classList.toggle('hidden', !this.checked);
+    });
+    
+    // Toggle Practicals options
+    const includePracticals = document.getElementById('include_practicals');
+    const practicalsOptions = document.getElementById('practicals-options');
+    includePracticals.addEventListener('change', function() {
+        practicalsOptions.classList.toggle('hidden', !this.checked);
     });
 </script>
 @endsection

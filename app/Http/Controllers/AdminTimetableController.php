@@ -145,6 +145,12 @@ class AdminTimetableController extends Controller
             'after_lunch_name' => 'nullable|string|max:50',
             'after_lunch_days' => 'nullable|array',
             'after_lunch_periods' => 'nullable|integer|min:1|max:3',
+            // Practicals
+            'include_practicals' => 'nullable',
+            'practical_subjects' => 'nullable|array',
+            'practical_subjects.*' => 'nullable|exists:subjects,id',
+            'practicals_day_2periods' => 'nullable|string',
+            'practicals_day_4periods' => 'nullable|string',
         ]);
 
         $classIds = $validated['class_ids'];
@@ -173,6 +179,11 @@ class AdminTimetableController extends Controller
                 'name' => $request->after_lunch_name ?? 'Reading',
                 'days' => $request->after_lunch_days ?? [],
                 'periods' => intval($request->after_lunch_periods ?? 1),
+            ] : null,
+            'practicals' => $request->include_practicals ? [
+                'subjects' => $request->practical_subjects ?? [],
+                'day_2periods' => $request->practicals_day_2periods ?? 'Monday',
+                'day_4periods' => $request->practicals_day_4periods ?? 'Wednesday',
             ] : null,
         ];
 
@@ -354,8 +365,15 @@ class AdminTimetableController extends Controller
         $class = Grade::with('subjects.teacher')->find($settings->class_id);
         $subjects = $class->subjects;
         
+        // Get practical subject IDs to exclude from regular timetable
+        $practicalSubjectIds = [];
+        if (!empty($specialSlots['practicals']['subjects'])) {
+            $practicalSubjectIds = $specialSlots['practicals']['subjects'];
+        }
+        
         // Build lesson pools by type (quad, triple, double, single)
         // Each entry represents ONE lesson block (not individual periods)
+        // EXCLUDE practical subjects - they will be in the Clubs/Activities section
         $lessonPool = [];
         
         // Track which subjects have multi-period lessons configured
@@ -369,6 +387,11 @@ class AdminTimetableController extends Controller
         }
         
         foreach ($subjects as $subject) {
+            // Skip practical subjects - they will be scheduled in Clubs/Activities section
+            if (in_array($subject->id, $practicalSubjectIds)) {
+                continue;
+            }
+            
             $validTeacherId = null;
             if ($subject->teacher_id && $subject->teacher) {
                 $validTeacherId = $subject->teacher_id;
@@ -557,6 +580,25 @@ class AdminTimetableController extends Controller
             $clubsPeriods = $specialSlots['clubs']['periods'] ?? 2;
         }
         
+        // Check for practicals on this day
+        $practicalsOnThisDay = false;
+        $practicalSubjects = [];
+        $practicalPeriods = 0;
+        if (!empty($specialSlots['practicals'])) {
+            $day2periods = $specialSlots['practicals']['day_2periods'] ?? null;
+            $day4periods = $specialSlots['practicals']['day_4periods'] ?? null;
+            
+            if ($day === $day2periods) {
+                $practicalsOnThisDay = true;
+                $practicalPeriods = 2;
+                $practicalSubjects = $specialSlots['practicals']['subjects'] ?? [];
+            } elseif ($day === $day4periods) {
+                $practicalsOnThisDay = true;
+                $practicalPeriods = 4;
+                $practicalSubjects = $specialSlots['practicals']['subjects'] ?? [];
+            }
+        }
+        
         // Check for special slots on this day
         $beforeBreakName = null;
         $beforeBreakPeriods = 1;
@@ -612,25 +654,76 @@ class AdminTimetableController extends Controller
         while ($currentMins < $endMins) {
             // Check if we're at clubs time (if clubs is on this day)
             if ($clubsOnThisDay && !$addedClubs && $currentMins >= $clubsStartMins && $currentMins < $clubsEndMins) {
-                // Create multiple slots for clubs based on number of periods
-                $clubSlotStart = $clubsStartMins;
-                for ($p = 0; $p < $clubsPeriods; $p++) {
-                    $clubSlotEnd = $clubSlotStart + $periodDuration;
-                    if ($clubSlotEnd > $clubsEndMins) {
-                        $clubSlotEnd = $clubsEndMins;
+                // If practicals are enabled on this day, add practical slots
+                if ($practicalsOnThisDay && !empty($practicalSubjects) && $practicalPeriods > 0) {
+                    // Get the first practical subject for this class
+                    // Load subject details to get teacher
+                    $practicalSubject = Subject::with('teacher')->whereIn('id', $practicalSubjects)->first();
+                    
+                    // Add the specified number of practical periods (2 or 4)
+                    $practicalSlotStart = $clubsStartMins;
+                    for ($p = 0; $p < $practicalPeriods; $p++) {
+                        $practicalSlotEnd = $practicalSlotStart + $periodDuration;
+                        if ($practicalSlotEnd > $clubsEndMins) {
+                            $practicalSlotEnd = $clubsEndMins;
+                        }
+                        
+                        $structure[] = [
+                            'start_time' => $fromMinutes($practicalSlotStart),
+                            'end_time' => $fromMinutes($practicalSlotEnd),
+                            'slot_type' => 'practical',
+                            'slot_name' => 'Practicals',
+                            'subject_id' => $practicalSubject ? $practicalSubject->id : null,
+                            'teacher_id' => $practicalSubject && $practicalSubject->teacher ? $practicalSubject->teacher_id : null,
+                        ];
+                        
+                        $practicalSlotStart = $practicalSlotEnd;
+                        if ($practicalSlotStart >= $clubsEndMins) break;
                     }
-                    $structure[] = [
-                        'start_time' => $fromMinutes($clubSlotStart),
-                        'end_time' => $fromMinutes($clubSlotEnd),
-                        'slot_type' => 'clubs',
-                        'slot_name' => 'Clubs',
-                        'subject_id' => null,
-                        'teacher_id' => null,
-                    ];
-                    $clubSlotStart = $clubSlotEnd;
-                    if ($clubSlotStart >= $clubsEndMins) break;
+                    
+                    $currentMins = $practicalSlotStart;
+                    
+                    // If there's still time left in clubs period, add regular clubs slots
+                    if ($currentMins < $clubsEndMins) {
+                        $remainingPeriods = floor(($clubsEndMins - $currentMins) / $periodDuration);
+                        for ($p = 0; $p < $remainingPeriods; $p++) {
+                            $clubSlotEnd = $currentMins + $periodDuration;
+                            if ($clubSlotEnd > $clubsEndMins) {
+                                $clubSlotEnd = $clubsEndMins;
+                            }
+                            $structure[] = [
+                                'start_time' => $fromMinutes($currentMins),
+                                'end_time' => $fromMinutes($clubSlotEnd),
+                                'slot_type' => 'clubs',
+                                'slot_name' => 'Clubs',
+                                'subject_id' => null,
+                                'teacher_id' => null,
+                            ];
+                            $currentMins = $clubSlotEnd;
+                            if ($currentMins >= $clubsEndMins) break;
+                        }
+                    }
+                } else {
+                    // Regular clubs without practicals
+                    $clubSlotStart = $clubsStartMins;
+                    for ($p = 0; $p < $clubsPeriods; $p++) {
+                        $clubSlotEnd = $clubSlotStart + $periodDuration;
+                        if ($clubSlotEnd > $clubsEndMins) {
+                            $clubSlotEnd = $clubsEndMins;
+                        }
+                        $structure[] = [
+                            'start_time' => $fromMinutes($clubSlotStart),
+                            'end_time' => $fromMinutes($clubSlotEnd),
+                            'slot_type' => 'clubs',
+                            'slot_name' => 'Clubs',
+                            'subject_id' => null,
+                            'teacher_id' => null,
+                        ];
+                        $clubSlotStart = $clubSlotEnd;
+                        if ($clubSlotStart >= $clubsEndMins) break;
+                    }
+                    $currentMins = $clubsEndMins;
                 }
-                $currentMins = $clubsEndMins;
                 $addedClubs = true;
                 continue;
             }
