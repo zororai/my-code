@@ -8,6 +8,8 @@ use App\TimetableSetting;
 use App\Grade;
 use App\Subject;
 use App\Teacher;
+use App\Services\TimetableConflictChecker;
+use App\Services\TimetableGenerationResult;
 use Carbon\Carbon;
 
 class AdminTimetableController extends Controller
@@ -145,27 +147,20 @@ class AdminTimetableController extends Controller
             'after_lunch_name' => 'nullable|string|max:50',
             'after_lunch_days' => 'nullable|array',
             'after_lunch_periods' => 'nullable|integer|min:1|max:3',
-            // Practicals (times and days are auto-calculated)
+            // Practicals
             'include_practicals' => 'nullable',
             'practical_subjects' => 'nullable|array',
             'practical_subjects.*' => 'nullable|exists:subjects,id',
+            'practical_periods_day1' => 'nullable|integer|min:1|max:6',
+            'practical_periods_day2' => 'nullable|integer|min:1|max:6',
         ]);
 
         $classIds = $validated['class_ids'];
         $generatedCount = 0;
+        $conflictChecker = new TimetableConflictChecker();
+        $allResults = [];
+        $allWarnings = [];
         
-        // Define possible day combinations for practicals (to avoid conflicts)
-        $practicalDayCombinations = [
-            ['day_2periods' => 'Monday', 'day_4periods' => 'Wednesday'],
-            ['day_2periods' => 'Tuesday', 'day_4periods' => 'Thursday'],
-            ['day_2periods' => 'Monday', 'day_4periods' => 'Thursday'],
-            ['day_2periods' => 'Tuesday', 'day_4periods' => 'Friday'],
-            ['day_2periods' => 'Wednesday', 'day_4periods' => 'Friday'],
-            ['day_2periods' => 'Monday', 'day_4periods' => 'Friday'],
-            ['day_2periods' => 'Tuesday', 'day_4periods' => 'Wednesday'],
-            ['day_2periods' => 'Wednesday', 'day_4periods' => 'Thursday'],
-        ];
-
         // Prepare special slots config (base config without practicals)
         $baseSpecialSlots = [
             'clubs' => $request->include_clubs ? [
@@ -193,34 +188,57 @@ class AdminTimetableController extends Controller
         ];
 
         foreach ($classIds as $index => $classId) {
+            $class = Grade::with('subjects')->find($classId);
+            
+            // Pre-validate before generation
+            $warnings = $conflictChecker->preValidate(
+                (object)$validated,
+                $class->subjects
+            );
+            $allWarnings = array_merge($allWarnings, $warnings);
+            
             // Clone base special slots for this class
             $specialSlots = $baseSpecialSlots;
             
-            // Add practicals with randomization - always randomize day combinations
+            // Add practicals with dynamic day assignment
             if ($request->include_practicals) {
-                // Always use randomization for different classes to avoid teacher conflicts
-                $combinationIndex = $index % count($practicalDayCombinations);
-                $dayCombination = $practicalDayCombinations[$combinationIndex];
+                $practicalDays = $this->assignPracticalDays($index);
                 
-                // Practicals start after lunch and times are calculated automatically
                 $specialSlots['practicals'] = [
                     'subjects' => $request->practical_subjects ?? [],
-                    'day_2periods' => $dayCombination['day_2periods'],
-                    'day_4periods' => $dayCombination['day_4periods'],
+                    'day_periods1' => $practicalDays['day_periods1'],
+                    'day_periods2' => $practicalDays['day_periods2'],
+                    'periods_day1' => intval($request->practical_periods_day1 ?? 2),
+                    'periods_day2' => intval($request->practical_periods_day2 ?? 4),
                 ];
             } else {
                 $specialSlots['practicals'] = null;
             }
+            
             // Prepare settings data for this class
             $settingsData = $validated;
             $settingsData['class_id'] = $classId;
             unset($settingsData['class_ids']);
+            
+            // Store practical config in JSON
+            if ($request->include_practicals) {
+                $settingsData['practical_config'] = [
+                    'periods_day1' => intval($request->practical_periods_day1 ?? 2),
+                    'periods_day2' => intval($request->practical_periods_day2 ?? 4),
+                ];
+            }
+            
             // Remove special slot fields from settings
-            unset($settingsData['include_clubs'], $settingsData['clubs_day'], $settingsData['clubs_position'], 
-                  $settingsData['clubs_start'], $settingsData['clubs_end'], $settingsData['include_before_break'],
-                  $settingsData['before_break_name'], $settingsData['before_break_days'], $settingsData['include_after_break'],
-                  $settingsData['after_break_name'], $settingsData['after_break_days'], $settingsData['include_after_lunch'],
-                  $settingsData['after_lunch_name'], $settingsData['after_lunch_days']);
+            unset($settingsData['include_clubs'], $settingsData['clubs_days'], $settingsData['clubs_position'], 
+                  $settingsData['clubs_start'], $settingsData['clubs_end'], $settingsData['clubs_periods'],
+                  $settingsData['include_before_break'], $settingsData['before_break_name'], 
+                  $settingsData['before_break_days'], $settingsData['before_break_periods'],
+                  $settingsData['include_after_break'], $settingsData['after_break_name'], 
+                  $settingsData['after_break_days'], $settingsData['after_break_periods'],
+                  $settingsData['include_after_lunch'], $settingsData['after_lunch_name'], 
+                  $settingsData['after_lunch_days'], $settingsData['after_lunch_periods'],
+                  $settingsData['include_practicals'], $settingsData['practical_subjects'],
+                  $settingsData['practical_periods_day1'], $settingsData['practical_periods_day2']);
 
             // Save or update timetable settings
             $settings = TimetableSetting::updateOrCreate(
@@ -233,8 +251,29 @@ class AdminTimetableController extends Controller
             );
 
             // Generate timetable with special slots
-            $this->generateTimetable($settings, $specialSlots);
+            $result = $this->generateTimetable($settings, $specialSlots);
+            $allResults[] = $result;
             $generatedCount++;
+        }
+
+        // Check for conflicts after all timetables are generated
+        $conflicts = $conflictChecker->findAllConflicts($validated['academic_year'], $validated['term']);
+        
+        // Collect all failures
+        $allFailures = [];
+        foreach ($allResults as $result) {
+            $allFailures = array_merge($allFailures, $result->failedLessons);
+        }
+        
+        // Flash warnings, conflicts, and failures to session
+        if (!empty($allWarnings)) {
+            session()->flash('timetable_warnings', $allWarnings);
+        }
+        if (!empty($conflicts)) {
+            session()->flash('timetable_conflicts', $conflicts);
+        }
+        if (!empty($allFailures)) {
+            session()->flash('timetable_failures', $allFailures);
         }
 
         // If only one class, redirect to show that class's timetable
@@ -378,6 +417,8 @@ class AdminTimetableController extends Controller
 
     private function generateTimetable(TimetableSetting $settings, $specialSlots = [])
     {
+        $result = new TimetableGenerationResult();
+        
         // Delete existing timetable for this class, academic year, and term
         Timetable::where('class_id', $settings->class_id)
             ->where('academic_year', $settings->academic_year)
@@ -540,14 +581,23 @@ class AdminTimetableController extends Controller
                     // Track lessons placed by type
                     $subjectLessonsPlaced[$subjectId][$lessonType]++;
                     
+                    $result->addPlacedLesson($lesson['name'], $day, $dayStructure[$day][$availableSlot[0]]['start_time']);
+                    
                     $placed = true;
                     break;
                 }
             }
             
-            // If couldn't place (all days at limit or no slots), lesson is NOT placed
-            // The remaining empty slots will become free periods
-            // This prevents subjects from appearing too many times on same day
+            // If couldn't place, track as failure
+            if (!$placed) {
+                $reason = 'No available slots found';
+                if (empty($preferredDays)) {
+                    $reason = 'Subject already scheduled on all available days';
+                } elseif (!$teacherId) {
+                    $reason = 'No teacher assigned to subject';
+                }
+                $result->addFailure($lesson['name'], $reason);
+            }
         }
         
         // Now create timetable records from the day structure
@@ -572,6 +622,8 @@ class AdminTimetableController extends Controller
                 ]);
             }
         }
+        
+        return $result;
     }
     
     /**
@@ -611,27 +663,29 @@ class AdminTimetableController extends Controller
         $practicalsStart = null;
         $practicalsEnd = null;
         if (!empty($specialSlots['practicals'])) {
-            $day2periods = $specialSlots['practicals']['day_2periods'] ?? null;
-            $day4periods = $specialSlots['practicals']['day_4periods'] ?? null;
+            $dayPeriods1 = $specialSlots['practicals']['day_periods1'] ?? null;
+            $dayPeriods2 = $specialSlots['practicals']['day_periods2'] ?? null;
+            $periodsDay1 = $specialSlots['practicals']['periods_day1'] ?? 2;
+            $periodsDay2 = $specialSlots['practicals']['periods_day2'] ?? 4;
             
-            if ($day === $day2periods) {
+            if ($day === $dayPeriods1) {
                 $practicalsOnThisDay = true;
-                $practicalPeriods = 2;
+                $practicalPeriods = $periodsDay1;
                 $practicalSubjects = $specialSlots['practicals']['subjects'] ?? [];
                 // Calculate start/end times automatically - start after lunch
                 $practicalsStart = $lunchEnd;
-                // Calculate end time: lunch_end + (2 periods × duration)
+                // Calculate end time: lunch_end + (periods × duration)
                 $lunchEndParts = explode(':', $lunchEnd);
                 $lunchEndMinutes = intval($lunchEndParts[0]) * 60 + intval($lunchEndParts[1]);
                 $practicalsEndMinutes = $lunchEndMinutes + ($practicalPeriods * $periodDuration);
                 $practicalsEnd = str_pad(floor($practicalsEndMinutes / 60), 2, '0', STR_PAD_LEFT) . ':' . str_pad($practicalsEndMinutes % 60, 2, '0', STR_PAD_LEFT);
-            } elseif ($day === $day4periods) {
+            } elseif ($day === $dayPeriods2) {
                 $practicalsOnThisDay = true;
-                $practicalPeriods = 4;
+                $practicalPeriods = $periodsDay2;
                 $practicalSubjects = $specialSlots['practicals']['subjects'] ?? [];
                 // Calculate start/end times automatically - start after lunch
                 $practicalsStart = $lunchEnd;
-                // Calculate end time: lunch_end + (4 periods × duration)
+                // Calculate end time: lunch_end + (periods × duration)
                 $lunchEndParts = explode(':', $lunchEnd);
                 $lunchEndMinutes = intval($lunchEndParts[0]) * 60 + intval($lunchEndParts[1]);
                 $practicalsEndMinutes = $lunchEndMinutes + ($practicalPeriods * $periodDuration);
@@ -1133,5 +1187,37 @@ class AdminTimetableController extends Controller
 
         return redirect()->route('admin.timetable.index')
             ->with('success', "Cleared {$deletedCount} timetable records for all classes (Term {$validated['term']}, {$validated['academic_year']})");
+    }
+
+    /**
+     * Generate practical day combinations dynamically
+     * Days are spread apart (not consecutive) to allow flexibility
+     */
+    private function generatePracticalDayCombinations(): array
+    {
+        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+        $combinations = [];
+        
+        for ($i = 0; $i < count($days); $i++) {
+            for ($j = $i + 2; $j < count($days); $j++) {
+                $combinations[] = [
+                    'day_periods1' => $days[$i],
+                    'day_periods2' => $days[$j]
+                ];
+            }
+        }
+        
+        return $combinations;
+    }
+
+    /**
+     * Assign practical days to a class based on index
+     * Cycles through available combinations to distribute across classes
+     */
+    private function assignPracticalDays(int $classIndex): array
+    {
+        $combinations = $this->generatePracticalDayCombinations();
+        $index = $classIndex % count($combinations);
+        return $combinations[$index];
     }
 }
