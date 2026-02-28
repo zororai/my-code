@@ -99,7 +99,7 @@ class TimetableConflictChecker
     /**
      * Pre-validate timetable settings before generation
      */
-    public function preValidate(TimetableSetting $settings, Collection $subjects): array
+    public function preValidate(array $settings, Collection $subjects): array
     {
         $warnings = [];
         
@@ -111,13 +111,13 @@ class TimetableConflictChecker
             $totalPeriodsNeeded += ($subject->quad_lessons_per_week ?? 0) * 4;
         }
         
-        $dayStartMinutes = $this->timeToMinutes($settings->start_time);
-        $dayEndMinutes = $this->timeToMinutes($settings->end_time);
-        $breakDuration = $this->timeToMinutes($settings->break_end) - $this->timeToMinutes($settings->break_start);
-        $lunchDuration = $this->timeToMinutes($settings->lunch_end) - $this->timeToMinutes($settings->lunch_start);
+        $dayStartMinutes = $this->timeToMinutes($settings['start_time']);
+        $dayEndMinutes = $this->timeToMinutes($settings['end_time']);
+        $breakDuration = $this->timeToMinutes($settings['break_end']) - $this->timeToMinutes($settings['break_start']);
+        $lunchDuration = $this->timeToMinutes($settings['lunch_end']) - $this->timeToMinutes($settings['lunch_start']);
         
         $availableMinutesPerDay = ($dayEndMinutes - $dayStartMinutes) - $breakDuration - $lunchDuration;
-        $periodsPerDay = floor($availableMinutesPerDay / $settings->subject_duration);
+        $periodsPerDay = floor($availableMinutesPerDay / $settings['subject_duration']);
         $totalAvailableSlots = $periodsPerDay * 5;
         
         if ($totalPeriodsNeeded > $totalAvailableSlots) {

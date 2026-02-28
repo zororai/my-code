@@ -48,6 +48,90 @@
         </div>
     @endif
 
+    @if(session('timetable_warnings'))
+        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 mb-6 rounded-r-lg" role="alert">
+            <div class="flex items-start">
+                <svg class="w-5 h-5 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <div class="flex-1">
+                    <h3 class="font-semibold mb-2">Warnings Detected</h3>
+                    <ul class="space-y-2">
+                        @foreach(session('timetable_warnings') as $warning)
+                            <li class="text-sm">
+                                <strong>{{ $warning['message'] }}</strong>
+                                @if(!empty($warning['suggestion']))
+                                    <br><span class="text-yellow-700">→ {{ $warning['suggestion'] }}</span>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+                <button type="button" class="ml-4 text-yellow-800 hover:text-yellow-900" onclick="this.parentElement.parentElement.remove()">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    @endif
+
+    @if(session('timetable_conflicts'))
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-800 p-4 mb-6 rounded-r-lg" role="alert">
+            <div class="flex items-start">
+                <svg class="w-5 h-5 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+                <div class="flex-1">
+                    <h3 class="font-semibold mb-2">Teacher Conflicts Detected</h3>
+                    <ul class="space-y-2">
+                        @foreach(session('timetable_conflicts') as $conflict)
+                            <li class="text-sm">
+                                <strong>{{ $conflict['teacher'] }}</strong> is double-booked at 
+                                <strong>{{ $conflict['time'] }}</strong> on <strong>{{ $conflict['day'] }}</strong> 
+                                for classes: <strong>{{ implode(', ', $conflict['classes']) }}</strong>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+                <button type="button" class="ml-4 text-red-800 hover:text-red-900" onclick="this.parentElement.parentElement.remove()">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    @endif
+
+    @if(session('timetable_failures'))
+        <div class="bg-orange-100 border-l-4 border-orange-500 text-orange-800 p-4 mb-6 rounded-r-lg" role="alert">
+            <div class="flex items-start">
+                <svg class="w-5 h-5 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <div class="flex-1">
+                    <h3 class="font-semibold mb-2">Unplaced Lessons</h3>
+                    <ul class="space-y-2">
+                        @foreach(session('timetable_failures') as $failure)
+                            <li class="text-sm">
+                                Subject <strong>{{ $failure['subject'] }}</strong> could not be placed: 
+                                <strong>{{ $failure['reason'] }}</strong>
+                                @if(!empty($failure['suggestion']))
+                                    <br><span class="text-orange-700">→ Suggestion: {{ $failure['suggestion'] }}</span>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+                <button type="button" class="ml-4 text-orange-800 hover:text-orange-900" onclick="this.parentElement.parentElement.remove()">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    @endif
+
     <!-- Classes Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         @forelse($classes as $class)

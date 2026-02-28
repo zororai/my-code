@@ -230,7 +230,7 @@
                         </svg>
                         Practicals
                     </h2>
-                    <p class="text-sm text-gray-500 mb-4">Select subjects that are practicals (e.g., Building, Agriculture). Practicals will get 6 periods per week (2 periods + 4 periods on alternating days) in the Clubs/Activities section and won't occupy regular timetable slots.</p>
+                    <p class="text-sm text-gray-500 mb-4">Select subjects that are practicals (e.g., Building, Agriculture). Practicals are scheduled in the Clubs/Activities section and won't occupy regular timetable slots.</p>
                     
                     <div class="space-y-4">
                         <div class="flex items-center">
@@ -259,9 +259,30 @@
                         </div>
                         
                         <div id="practicals-options" class="space-y-3 {{ old('include_practicals') ? '' : 'hidden' }}">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Periods on Day 1</label>
+                                    <input type="number" name="practical_periods_day1" id="practical_periods_day1" value="{{ old('practical_periods_day1', '2') }}" 
+                                           min="1" max="6"
+                                           class="w-full px-4 py-3 border border-purple-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Periods on Day 2</label>
+                                    <input type="number" name="practical_periods_day2" id="practical_periods_day2" value="{{ old('practical_periods_day2', '4') }}" 
+                                           min="1" max="6"
+                                           class="w-full px-4 py-3 border border-purple-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                </div>
+                            </div>
+                            
+                            <div class="bg-purple-100 border border-purple-300 rounded-lg p-3 mb-4">
+                                <p class="text-sm text-purple-800 font-medium">
+                                    Total: <span id="practicalTotal" class="font-bold">6</span> periods per week
+                                </p>
+                            </div>
+                            
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Select Practical Subjects</label>
-                                <p class="text-xs text-gray-500 mb-3">These subjects will get 2 periods on one day and 4 periods on another day (total 6 periods/week)</p>
+                                <p class="text-xs text-gray-500 mb-3">These subjects will be scheduled on two separate days after lunch</p>
                                 
                                 <!-- Search Bar -->
                                 <div class="mb-3">
@@ -296,24 +317,11 @@
                             <div class="bg-purple-100 border border-purple-300 rounded-lg p-3 mb-4">
                                 <p class="text-sm text-purple-800 font-medium mb-2">📅 Practicals Scheduling:</p>
                                 <ul class="text-xs text-purple-700 space-y-1 list-disc list-inside">
-                                    <li><strong>2 periods</strong> on one day + <strong>4 periods</strong> on another day = 6 periods/week</li>
                                     <li>Practicals are scheduled <strong>after lunch</strong> automatically</li>
                                     <li>Duration calculated based on your subject duration setting</li>
+                                    <li>Day combinations are automatically assigned per class to prevent teacher conflicts</li>
+                                    <li>Days will be spread across the week (non-consecutive)</li>
                                 </ul>
-                            </div>
-                            
-                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                                <p class="text-xs text-gray-700 font-medium mb-2">Day Combinations (auto-randomized for multiple classes):</p>
-                                <div class="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                                    <div>• Monday (2) + Wednesday (4)</div>
-                                    <div>• Tuesday (2) + Thursday (4)</div>
-                                    <div>• Monday (2) + Thursday (4)</div>
-                                    <div>• Tuesday (2) + Friday (4)</div>
-                                    <div>• Wednesday (2) + Friday (4)</div>
-                                    <div>• Monday (2) + Friday (4)</div>
-                                    <div>• Tuesday (2) + Wednesday (4)</div>
-                                    <div>• Wednesday (2) + Thursday (4)</div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -585,6 +593,26 @@
                 practicalSubjectsCount.textContent = visibleCount + ' subject(s) found';
             }
         });
+    }
+    
+    // Update practical total dynamically
+    const practicalPeriodsDay1 = document.getElementById('practical_periods_day1');
+    const practicalPeriodsDay2 = document.getElementById('practical_periods_day2');
+    const practicalTotal = document.getElementById('practicalTotal');
+    
+    function updatePracticalTotal() {
+        if (practicalPeriodsDay1 && practicalPeriodsDay2 && practicalTotal) {
+            const day1 = parseInt(practicalPeriodsDay1.value) || 0;
+            const day2 = parseInt(practicalPeriodsDay2.value) || 0;
+            practicalTotal.textContent = day1 + day2;
+        }
+    }
+    
+    if (practicalPeriodsDay1) {
+        practicalPeriodsDay1.addEventListener('input', updatePracticalTotal);
+    }
+    if (practicalPeriodsDay2) {
+        practicalPeriodsDay2.addEventListener('input', updatePracticalTotal);
     }
 </script>
 @endsection

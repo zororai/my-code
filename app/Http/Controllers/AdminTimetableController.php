@@ -192,7 +192,7 @@ class AdminTimetableController extends Controller
             
             // Pre-validate before generation
             $warnings = $conflictChecker->preValidate(
-                (object)$validated,
+                $validated,
                 $class->subjects
             );
             $allWarnings = array_merge($allWarnings, $warnings);
@@ -415,7 +415,7 @@ class AdminTimetableController extends Controller
             ->with('success', 'Timetable deleted successfully!');
     }
 
-    private function generateTimetable(TimetableSetting $settings, $specialSlots = [])
+    private function generateTimetable(TimetableSetting $settings, $specialSlots = []): TimetableGenerationResult
     {
         $result = new TimetableGenerationResult();
         
@@ -517,6 +517,60 @@ class AdminTimetableController extends Controller
             $dayStructure[$day] = $this->generateDayStructure($settings, $day, $specialSlots);
         }
         
+        // Add practical lessons to the pool for their specific days
+        // Unlike regular lessons, practicals are pinned to specific days
+        // but can appear at any time slot on those days
+        if (!empty($specialSlots['practicals'])) {
+            $dayPeriods1 = $specialSlots['practicals']['day_periods1'] ?? null;
+            $dayPeriods2 = $specialSlots['practicals']['day_periods2'] ?? null;
+            $periodsDay1 = $specialSlots['practicals']['periods_day1'] ?? 2;
+            $periodsDay2 = $specialSlots['practicals']['periods_day2'] ?? 4;
+            $practicalSubjectIds = $specialSlots['practicals']['subjects'] ?? [];
+            
+            $practicalSubjectsData = \App\Subject::with('teacher')
+                ->whereIn('id', $practicalSubjectIds)
+                ->get();
+            
+            foreach ($practicalSubjectsData as $practicalSubject) {
+                $validTeacherId = $practicalSubject->teacher_id 
+                    && $practicalSubject->teacher 
+                    ? $practicalSubject->teacher_id 
+                    : null;
+                
+                if ($dayPeriods1) {
+                    // Force this lesson onto day 1 only
+                    $practicalLesson = [
+                        'id' => $practicalSubject->id,
+                        'name' => $practicalSubject->name,
+                        'teacher_id' => $validTeacherId,
+                        'has_multi_period' => true,
+                        'duration_periods' => $periodsDay1,
+                        'type' => 'practical',
+                        'pinned_day' => $dayPeriods1,
+                    ];
+                    $lessonPool[] = $practicalLesson;
+                }
+                
+                if ($dayPeriods2) {
+                    $practicalLesson = [
+                        'id' => $practicalSubject->id,
+                        'name' => $practicalSubject->name,
+                        'teacher_id' => $validTeacherId,
+                        'has_multi_period' => true,
+                        'duration_periods' => $periodsDay2,
+                        'type' => 'practical',
+                        'pinned_day' => $dayPeriods2,
+                    ];
+                    $lessonPool[] = $practicalLesson;
+                }
+            }
+            
+            // Re-sort: longer lessons first
+            usort($lessonPool, function($a, $b) {
+                return $b['duration_periods'] - $a['duration_periods'];
+            });
+        }
+        
         // Track how many lessons of each type have been placed for each subject
         $subjectLessonsPlaced = [];
         foreach ($subjects as $subject) {
@@ -536,8 +590,13 @@ class AdminTimetableController extends Controller
             $lessonType = $lesson['type'];
             $hasMultiPeriod = $lesson['has_multi_period'] ?? false;
             
-            // For multi-period lessons, try to space them across different days
-            $preferredDays = $this->getPreferredDays($days, $subjectId, $usedSubjectsByDay, $durationPeriods);
+            // If lesson is pinned to a specific day (practicals), only try that day
+            if (!empty($lesson['pinned_day'])) {
+                $preferredDays = [$lesson['pinned_day']];
+            } else {
+                // For multi-period lessons, try to space them across different days
+                $preferredDays = $this->getPreferredDays($days, $subjectId, $usedSubjectsByDay, $durationPeriods);
+            }
             
             // STRICT CONSTRAINT: Maximum 1 lesson block per subject per day
             // This applies to ALL lesson types (single, double, triple, quad)
@@ -571,6 +630,11 @@ class AdminTimetableController extends Controller
                         $dayStructure[$day][$slotIndex]['teacher_id'] = $teacherId;
                         $dayStructure[$day][$slotIndex]['lesson_type'] = $lessonType;
                         $dayStructure[$day][$slotIndex]['is_continuation'] = ($i > 0);
+                        // Mark practical slots with correct slot_type
+                        if ($lessonType === 'practical') {
+                            $dayStructure[$day][$slotIndex]['slot_type'] = 'practical';
+                            $dayStructure[$day][$slotIndex]['slot_name'] = 'Practicals';
+                        }
                     }
                     
                     // STRICT CONSTRAINT: Mark subject as used for this day
@@ -655,43 +719,8 @@ class AdminTimetableController extends Controller
             $clubsPeriods = $specialSlots['clubs']['periods'] ?? 2;
         }
         
-        // Check for practicals on this day (STANDALONE - separate from clubs)
-        // Practicals start after lunch automatically
-        $practicalsOnThisDay = false;
-        $practicalSubjects = [];
-        $practicalPeriods = 0;
-        $practicalsStart = null;
-        $practicalsEnd = null;
-        if (!empty($specialSlots['practicals'])) {
-            $dayPeriods1 = $specialSlots['practicals']['day_periods1'] ?? null;
-            $dayPeriods2 = $specialSlots['practicals']['day_periods2'] ?? null;
-            $periodsDay1 = $specialSlots['practicals']['periods_day1'] ?? 2;
-            $periodsDay2 = $specialSlots['practicals']['periods_day2'] ?? 4;
-            
-            if ($day === $dayPeriods1) {
-                $practicalsOnThisDay = true;
-                $practicalPeriods = $periodsDay1;
-                $practicalSubjects = $specialSlots['practicals']['subjects'] ?? [];
-                // Calculate start/end times automatically - start after lunch
-                $practicalsStart = $lunchEnd;
-                // Calculate end time: lunch_end + (periods × duration)
-                $lunchEndParts = explode(':', $lunchEnd);
-                $lunchEndMinutes = intval($lunchEndParts[0]) * 60 + intval($lunchEndParts[1]);
-                $practicalsEndMinutes = $lunchEndMinutes + ($practicalPeriods * $periodDuration);
-                $practicalsEnd = str_pad(floor($practicalsEndMinutes / 60), 2, '0', STR_PAD_LEFT) . ':' . str_pad($practicalsEndMinutes % 60, 2, '0', STR_PAD_LEFT);
-            } elseif ($day === $dayPeriods2) {
-                $practicalsOnThisDay = true;
-                $practicalPeriods = $periodsDay2;
-                $practicalSubjects = $specialSlots['practicals']['subjects'] ?? [];
-                // Calculate start/end times automatically - start after lunch
-                $practicalsStart = $lunchEnd;
-                // Calculate end time: lunch_end + (periods × duration)
-                $lunchEndParts = explode(':', $lunchEnd);
-                $lunchEndMinutes = intval($lunchEndParts[0]) * 60 + intval($lunchEndParts[1]);
-                $practicalsEndMinutes = $lunchEndMinutes + ($practicalPeriods * $periodDuration);
-                $practicalsEnd = str_pad(floor($practicalsEndMinutes / 60), 2, '0', STR_PAD_LEFT) . ':' . str_pad($practicalsEndMinutes % 60, 2, '0', STR_PAD_LEFT);
-            }
-        }
+        // Practicals are no longer handled in generateDayStructure
+        // They will be added to the lesson pool in generateTimetable() with pinned days
         
         // Check for special slots on this day
         $beforeBreakName = null;
@@ -739,53 +768,13 @@ class AdminTimetableController extends Controller
         $clubsStartMins = $clubsOnThisDay ? $toMinutes($clubsStart) : null;
         $clubsEndMins = $clubsOnThisDay ? $toMinutes($clubsEnd) : null;
         
-        // Practicals timing (STANDALONE)
-        $practicalsStartMins = $practicalsOnThisDay ? $toMinutes($practicalsStart) : null;
-        $practicalsEndMins = $practicalsOnThisDay ? $toMinutes($practicalsEnd) : null;
-        
         // Track if we've added special slots
         $addedBeforeBreak = false;
         $addedAfterBreak = false;
         $addedAfterLunch = false;
         $addedClubs = false;
-        $addedPracticals = false;
         
         while ($currentMins < $endMins) {
-            // Check if we're at PRACTICALS time (STANDALONE - separate from clubs)
-            if ($practicalsOnThisDay && !$addedPracticals && $currentMins >= $practicalsStartMins && $currentMins < $practicalsEndMins) {
-                // Get ALL practical subjects with their teachers
-                $practicalSubjectsData = Subject::with('teacher')->whereIn('id', $practicalSubjects)->get();
-                
-                // Add the specified number of practical periods (2 or 4)
-                // Each practical subject gets its own slot at the same time (they share the time slot)
-                $practicalSlotStart = $practicalsStartMins;
-                for ($p = 0; $p < $practicalPeriods; $p++) {
-                    $practicalSlotEnd = $practicalSlotStart + $periodDuration;
-                    if ($practicalSlotEnd > $practicalsEndMins) {
-                        $practicalSlotEnd = $practicalsEndMins;
-                    }
-                    
-                    // Create a slot for EACH practical subject (all teachers share the same time)
-                    foreach ($practicalSubjectsData as $practicalSubject) {
-                        $structure[] = [
-                            'start_time' => $fromMinutes($practicalSlotStart),
-                            'end_time' => $fromMinutes($practicalSlotEnd),
-                            'slot_type' => 'practical',
-                            'slot_name' => 'Practicals',
-                            'subject_id' => $practicalSubject->id,
-                            'teacher_id' => $practicalSubject->teacher ? $practicalSubject->teacher_id : null,
-                        ];
-                    }
-                    
-                    $practicalSlotStart = $practicalSlotEnd;
-                    if ($practicalSlotStart >= $practicalsEndMins) break;
-                }
-                
-                $currentMins = $practicalsEndMins;
-                $addedPracticals = true;
-                continue;
-            }
-            
             // Check if we're at clubs time (if clubs is on this day)
             if ($clubsOnThisDay && !$addedClubs && $currentMins >= $clubsStartMins && $currentMins < $clubsEndMins) {
                 // Regular clubs slots (practicals are now completely standalone)
@@ -1064,6 +1053,11 @@ class AdminTimetableController extends Controller
                         // Check if the gap contains ONLY break/lunch (which is allowed)
                         $gapIsOnlyBreakLunch = true;
                         for ($k = $prevSlotIndex + 1; $k < $currSlotIndex; $k++) {
+                            // Bounds check to prevent undefined array key errors
+                            if (!isset($dayStructure[$k])) {
+                                $gapIsOnlyBreakLunch = false;
+                                break;
+                            }
                             if (!in_array($dayStructure[$k]['slot_type'], ['break', 'lunch'])) {
                                 // There's something other than break/lunch in the gap
                                 $gapIsOnlyBreakLunch = false;

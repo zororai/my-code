@@ -41,6 +41,12 @@ Stores configuration for timetable generation.
 - `subject_duration` - Duration of each period in minutes
 - `academic_year` - Academic year
 - `term` - Term number
+- `practical_config` - JSON field storing practical period configuration
+
+**Helper Methods:**
+- `getPracticalPeriodsDay1()` - Returns periods for first practical day (default: 2)
+- `getPracticalPeriodsDay2()` - Returns periods for second practical day (default: 4)
+- `getTotalPracticalPeriods()` - Returns sum of both practical days
 
 #### 3. **Subject Model** (`app/Subject.php`)
 Defines subjects and their lesson requirements.
@@ -60,6 +66,34 @@ Represents classes/grades.
 **Relationships:**
 - `subjects()` - Many-to-many relationship with subjects
 - `teacher()` - Class teacher (form teacher)
+
+### Service Classes
+
+#### 5. **TimetableConflictChecker** (`app/Services/TimetableConflictChecker.php`)
+Handles all conflict detection and validation.
+
+**Methods:**
+- `isTeacherAvailable()` - Checks if teacher is available at specific time
+- `findAllConflicts()` - Finds all teacher scheduling conflicts
+- `preValidate()` - Validates settings before generation (capacity, teacher assignments)
+- `timeToMinutes()` - Helper to convert time strings to minutes
+
+#### 6. **TimetableGenerationResult** (`app/Services/TimetableGenerationResult.php`)
+Tracks the results of timetable generation.
+
+**Properties:**
+- `placedLessons` - Array of successfully placed lessons
+- `failedLessons` - Array of lessons that couldn't be placed
+- `conflicts` - Array of scheduling conflicts
+- `warnings` - Array of validation warnings
+
+**Methods:**
+- `addFailure()` - Records a failed lesson with intelligent suggestions
+- `addConflict()` - Records a scheduling conflict
+- `addWarning()` - Records a validation warning
+- `addPlacedLesson()` - Records a successfully placed lesson
+- `hasIssues()` - Returns true if there are any problems
+- `toArray()` - Converts result to array format
 
 ## Timetable Generation Process
 
@@ -118,10 +152,14 @@ The admin navigates to `/admin/timetable/create` and configures:
 
 **Practicals (Optional):**
 - Select practical subjects
+- **Configure periods per day:**
+  - Periods on Day 1 (default: 2, range: 1-6)
+  - Periods on Day 2 (default: 4, range: 1-6)
+  - Total periods displayed dynamically
 - System automatically assigns:
-  - 2-period practical on one day
-  - 4-period practical on another day
-  - Days are randomized per class to avoid teacher conflicts
+  - Days are dynamically generated and randomized per class
+  - Days are spread apart (non-consecutive) to prevent conflicts
+  - All practical subjects scheduled at same time (shared slot)
 
 ### Step 2: Validation (`store()` method)
 
@@ -131,17 +169,44 @@ The system validates:
 - Subject duration between 20-120 minutes
 - Academic year and term provided
 - Special slot configurations (if enabled)
+- **Practical periods (if enabled):**
+  - `practical_periods_day1`: integer, min:1, max:6
+  - `practical_periods_day2`: integer, min:1, max:6
+
+### Step 2.5: Pre-Validation (NEW)
+
+Before generating each timetable, the `TimetableConflictChecker` runs:
+
+**Capacity Check:**
+- Calculates total periods needed across all subjects
+- Calculates available slots per week
+- Warns if periods needed > available slots
+
+**Teacher Assignment Check:**
+- Warns for any subject without an assigned teacher
+
+**Results:**
+- All warnings stored in `timetable_warnings` session flash
 
 ### Step 3: Settings Storage
 
 For each selected class:
 1. Create/update `TimetableSetting` record
 2. Store base configuration
-3. Prepare special slots configuration with randomized practical days
+3. **Store practical configuration in JSON:**
+   ```php
+   'practical_config' => [
+       'periods_day1' => intval($request->practical_periods_day1 ?? 2),
+       'periods_day2' => intval($request->practical_periods_day2 ?? 4),
+   ]
+   ```
+4. Prepare special slots configuration with dynamically assigned practical days
 
 ### Step 4: Timetable Generation (`generateTimetable()` method)
 
 This is the core algorithm that creates the actual timetable.
+
+**Returns:** `TimetableGenerationResult` object containing placed lessons, failures, conflicts, and warnings.
 
 #### Phase 1: Delete Existing Timetable
 ```php
@@ -244,7 +309,16 @@ For each day (Monday-Friday), the system creates a time structure:
 5. Check teacher availability for entire time span
 6. Return slot indices if valid, null otherwise
 
-#### Phase 5: Create Database Records
+#### Phase 5: Track Results
+
+During lesson placement:
+- **Successful placements:** Recorded via `$result->addPlacedLesson()`
+- **Failed placements:** Recorded via `$result->addFailure()` with:
+  - Subject name
+  - Reason (e.g., "No available slots found", "Subject already scheduled on all days")
+  - Intelligent suggestion based on failure reason
+
+#### Phase 6: Create Database Records
 
 For every slot in the day structure:
 ```php
@@ -271,10 +345,35 @@ Timetable::create([
 - Practicals
 - Free periods (unassigned subject slots)
 
-### Step 5: Redirect
+#### Phase 7: Return Result
+
+The method returns a `TimetableGenerationResult` object containing all placement information.
+
+### Step 5: Post-Generation Conflict Detection (NEW)
+
+After all classes are generated:
+
+**Conflict Detection:**
+```php
+$conflicts = $conflictChecker->findAllConflicts($academicYear, $term);
+```
+- Checks for teacher double-booking across all classes
+- Groups conflicts by teacher, day, and time
+- Lists all affected classes
+
+**Collect Failures:**
+- Aggregates all failed lessons from all `TimetableGenerationResult` objects
+
+**Flash to Session:**
+- `timetable_warnings` - Pre-validation warnings
+- `timetable_conflicts` - Teacher scheduling conflicts
+- `timetable_failures` - Unplaced lessons with suggestions
+
+### Step 6: Redirect
 
 - **Single class:** Redirect to `admin.timetable.show` to view the generated timetable
 - **Multiple classes:** Redirect to `admin.timetable.index` with success message
+- All warnings, conflicts, and failures displayed as dismissible alerts
 
 ## Viewing Timetables
 
@@ -342,9 +441,11 @@ The `checkTeacherConflict()` method prevents double-booking:
 
 ### 2. Practical Subjects
 - Scheduled separately in dedicated practical slots
-- 2 periods on one day, 4 periods on another
-- Randomized days per class to avoid teacher conflicts
+- **Configurable periods per day** (1-6 periods each day)
+- Days dynamically generated and assigned per class
+- Days are spread apart (non-consecutive) to prevent conflicts
 - All practical teachers share the same time slot
+- Configuration stored in `practical_config` JSON field
 
 ### 3. Special Slots
 - Assembly, sports, reading, etc.
@@ -357,12 +458,17 @@ The `checkTeacherConflict()` method prevents double-booking:
 - Multiple periods supported
 - Separate from practicals
 
-### 5. Teacher Conflict Prevention
-- Checks across all classes
-- Validates during generation
+### 4. Teacher Conflict Prevention (ENHANCED)
+- **Pre-validation** before generation starts
+- **Real-time checking** during lesson placement
+- **Post-generation analysis** across all classes
+- **Conflict reporting** with detailed information:
+  - Teacher name
+  - Day and time of conflict
+  - All affected classes
 - Validates during manual editing
 
-### 6. Free Periods
+### 5. Free Periods
 - Automatically created for unassigned slots
 - Maintains day structure alignment
 - Gap slots (too small) remain as free periods
@@ -372,6 +478,9 @@ The `checkTeacherConflict()` method prevents double-booking:
 - Per-term settings
 - Customizable school day times
 - Adjustable period duration
+- **Dynamic practical periods** (no hard-coded values)
+- **Intelligent failure suggestions** based on issue type
+- **Comprehensive validation** before generation
 
 ## Best Practices
 
@@ -386,6 +495,7 @@ The `checkTeacherConflict()` method prevents double-booking:
    - Ensure break and lunch times allow for subject slots
    - Period duration should divide evenly into available time
    - Leave buffer time for transitions
+   - **Review pre-validation warnings** for capacity issues
 
 3. **Use Special Slots Wisely:**
    - Don't over-schedule special slots
@@ -394,13 +504,22 @@ The `checkTeacherConflict()` method prevents double-booking:
 
 4. **Handle Practicals Carefully:**
    - Select only true practical subjects
-   - System will automatically schedule 2+4 periods
-   - Different classes get different days to avoid conflicts
+   - **Configure periods per day** based on subject requirements
+   - Total periods displayed dynamically (Day 1 + Day 2)
+   - System automatically assigns non-consecutive days
+   - Different classes get different day combinations to avoid conflicts
 
 5. **Generate Multiple Classes Together:**
    - Helps prevent teacher conflicts
-   - System randomizes practical days per class
+   - System dynamically assigns practical days per class
    - More efficient than one-by-one
+   - **Review conflict report** after generation
+
+6. **Monitor Generation Results (NEW):**
+   - Check yellow warnings for capacity/teacher issues
+   - Check red conflicts for teacher double-booking
+   - Check orange failures for unplaced lessons
+   - Follow suggestions to resolve issues
 
 ### When Editing Timetables:
 
@@ -436,20 +555,79 @@ The `checkTeacherConflict()` method prevents double-booking:
 - Term: integer 1-3
 - Required for all operations
 
-### Practical Day Combinations
+### Practical Day Combinations (DYNAMIC)
+
+Day combinations are now generated dynamically:
+
 ```php
-$practicalDayCombinations = [
-    ['day_2periods' => 'Monday', 'day_4periods' => 'Wednesday'],
-    ['day_2periods' => 'Tuesday', 'day_4periods' => 'Thursday'],
-    ['day_2periods' => 'Monday', 'day_4periods' => 'Thursday'],
-    ['day_2periods' => 'Tuesday', 'day_4periods' => 'Friday'],
-    ['day_2periods' => 'Wednesday', 'day_4periods' => 'Friday'],
-    ['day_2periods' => 'Monday', 'day_4periods' => 'Friday'],
-    ['day_2periods' => 'Tuesday', 'day_4periods' => 'Wednesday'],
-    ['day_2periods' => 'Wednesday', 'day_4periods' => 'Thursday'],
-];
+private function generatePracticalDayCombinations(): array
+{
+    $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    $combinations = [];
+    
+    for ($i = 0; $i < count($days); $i++) {
+        for ($j = $i + 2; $j < count($days); $j++) {
+            $combinations[] = [
+                'day_periods1' => $days[$i],
+                'day_periods2' => $days[$j]
+            ];
+        }
+    }
+    
+    return $combinations;
+}
 ```
-Classes cycle through these combinations to distribute practical times.
+
+**Key Points:**
+- Days are spread apart (minimum 2 days between)
+- No hard-coded day names in arrays
+- Generates 10 possible combinations
+- Classes cycle through combinations using modulo
+
+### Practical Configuration Storage
+
+Stored in `practical_config` JSON field:
+```json
+{
+    "periods_day1": 2,
+    "periods_day2": 4
+}
+```
+
+### Session Flash Keys
+
+**timetable_warnings:**
+```php
+[
+    ['type' => 'capacity', 'message' => '...', 'suggestion' => '...'],
+    ['type' => 'teacher', 'message' => '...', 'suggestion' => '...']
+]
+```
+
+**timetable_conflicts:**
+```php
+[
+    [
+        'teacher' => 'John Doe',
+        'teacher_id' => 1,
+        'day' => 'Monday',
+        'time' => '08:00:00 - 09:00:00',
+        'classes' => ['Form 1A', 'Form 2B']
+    ]
+]
+```
+
+**timetable_failures:**
+```php
+[
+    [
+        'subject' => 'Mathematics',
+        'reason' => 'No available slots found',
+        'day' => '',
+        'suggestion' => 'Reduce the number of lessons per week or extend the school day'
+    ]
+]
+```
 
 ## Troubleshooting
 
