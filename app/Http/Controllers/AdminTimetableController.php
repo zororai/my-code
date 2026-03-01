@@ -514,7 +514,10 @@ class AdminTimetableController extends Controller
         // First pass: Generate the time structure for each day
         $dayStructure = [];
         foreach ($days as $day) {
-            $dayStructure[$day] = $this->generateDayStructure($settings, $day, $specialSlots);
+            // array_values() ensures clean 0-based sequential integer keys
+            $dayStructure[$day] = array_values(
+                $this->generateDayStructure($settings, $day, $specialSlots)
+            );
         }
         
         // Add practical lessons to the pool for their specific days
@@ -610,6 +613,9 @@ class AdminTimetableController extends Controller
                     continue; // Skip this day - subject already scheduled
                 }
                 
+                // Re-index before passing to ensure consistent indices
+                $dayStructure[$day] = array_values($dayStructure[$day]);
+                
                 // Find consecutive available slots for this lesson
                 $availableSlot = $this->findConsecutiveSlots(
                     $dayStructure[$day], 
@@ -626,6 +632,9 @@ class AdminTimetableController extends Controller
                 if ($availableSlot !== null) {
                     // Mark slots as used - $availableSlot is now an array of actual indices
                     foreach ($availableSlot as $i => $slotIndex) {
+                        if (!isset($dayStructure[$day][$slotIndex])) {
+                            continue; // Safety guard
+                        }
                         $dayStructure[$day][$slotIndex]['subject_id'] = $subjectId;
                         $dayStructure[$day][$slotIndex]['teacher_id'] = $teacherId;
                         $dayStructure[$day][$slotIndex]['lesson_type'] = $lessonType;
@@ -643,9 +652,15 @@ class AdminTimetableController extends Controller
                     $usedSubjectsByDay[$day][] = $subjectId;
                     
                     // Track lessons placed by type
-                    $subjectLessonsPlaced[$subjectId][$lessonType]++;
+                    if (isset($subjectLessonsPlaced[$subjectId][$lessonType])) {
+                        $subjectLessonsPlaced[$subjectId][$lessonType]++;
+                    }
                     
-                    $result->addPlacedLesson($lesson['name'], $day, $dayStructure[$day][$availableSlot[0]]['start_time']);
+                    // Safe access to start_time for addPlacedLesson
+                    $startTime = isset($dayStructure[$day][$availableSlot[0]]) 
+                        ? $dayStructure[$day][$availableSlot[0]]['start_time'] 
+                        : '00:00:00';
+                    $result->addPlacedLesson($lesson['name'], $day, $startTime);
                     
                     $placed = true;
                     break;
@@ -996,11 +1011,14 @@ class AdminTimetableController extends Controller
      */
     private function findConsecutiveSlots($dayStructure, $periodsNeeded, $periodDuration, $teacherId, $day, $settings, $subjectId = null, $lessonType = 'single', $hasMultiPeriod = false, $forcePlace = false)
     {
+        // Re-index to ensure keys are sequential integers matching $dayStructure
+        $dayStructure = array_values($dayStructure);
         $subjectSlots = [];
         
         // Get indices of subject slots only (excluding gap slots which stay as free periods)
         foreach ($dayStructure as $index => $slot) {
-            if ($slot['slot_type'] === 'subject' && $slot['subject_id'] === null) {
+            if (($slot['slot_type'] ?? '') === 'subject' 
+                && ($slot['subject_id'] ?? null) === null) {
                 // Skip gap slots - they should remain as free periods
                 if (isset($slot['is_gap']) && $slot['is_gap']) {
                     continue;
@@ -1036,8 +1054,14 @@ class AdminTimetableController extends Controller
                 
                 $currentSlotIndex = $subjectSlots[$i + $j];
                 
-                // Check if this slot is already used
-                if ($dayStructure[$currentSlotIndex]['subject_id'] !== null) {
+                // Bounds check to prevent undefined array key errors
+                if (!isset($dayStructure[$currentSlotIndex])) {
+                    $consecutive = false;
+                    break;
+                }
+                
+                // Check if this slot is already used (with null coalescing for safety)
+                if (($dayStructure[$currentSlotIndex]['subject_id'] ?? null) !== null) {
                     $consecutive = false;
                     break;
                 }
@@ -1052,13 +1076,16 @@ class AdminTimetableController extends Controller
                     if ($currSlotIndex != $prevSlotIndex + 1) {
                         // Check if the gap contains ONLY break/lunch (which is allowed)
                         $gapIsOnlyBreakLunch = true;
+                        $dayStructureKeys = array_keys($dayStructure);
+                        $maxKey = max($dayStructureKeys);
+                        
                         for ($k = $prevSlotIndex + 1; $k < $currSlotIndex; $k++) {
-                            // Bounds check to prevent undefined array key errors
-                            if (!isset($dayStructure[$k])) {
-                                $gapIsOnlyBreakLunch = false;
-                                break;
+                            // Hard safety: skip any key that doesn't exist
+                            if ($k > $maxKey || !array_key_exists($k, $dayStructure)) {
+                                continue;
                             }
-                            if (!in_array($dayStructure[$k]['slot_type'], ['break', 'lunch'])) {
+                            $slotType = $dayStructure[$k]['slot_type'] ?? 'unknown';
+                            if (!in_array($slotType, ['break', 'lunch'])) {
                                 // There's something other than break/lunch in the gap
                                 $gapIsOnlyBreakLunch = false;
                                 break;
@@ -1080,9 +1107,13 @@ class AdminTimetableController extends Controller
             
             // Check for teacher conflict across the entire time span
             if ($teacherId) {
-                $startTime = $dayStructure[$startIndex]['start_time'];
-                $endSlotIndex = $subjectSlots[$i + $periodsNeeded - 1];
-                $endTime = Carbon::parse($dayStructure[$startIndex]['start_time'])
+                // Bounds check before accessing dayStructure
+                if (!isset($dayStructure[$startIndex])) {
+                    continue;
+                }
+                
+                $startTime = $dayStructure[$startIndex]['start_time'] ?? '00:00:00';
+                $endTime = Carbon::parse($startTime)
                     ->addMinutes($periodDuration * $periodsNeeded)
                     ->format('H:i:s');
                 
@@ -1104,9 +1135,12 @@ class AdminTimetableController extends Controller
                 // ALSO check against current day structure (e.g., practicals already in structure)
                 // This prevents teachers from being assigned to regular slots when they have practicals
                 foreach ($dayStructure as $existingSlot) {
-                    if ($existingSlot['teacher_id'] == $teacherId && 
-                        $existingSlot['start_time'] < $endTime && 
-                        $existingSlot['end_time'] > $startTime) {
+                    $slotTeacherId = $existingSlot['teacher_id'] ?? null;
+                    $slotStartTime = $existingSlot['start_time'] ?? '23:59:59';
+                    $slotEndTime = $existingSlot['end_time'] ?? '00:00:00';
+                    if ($slotTeacherId == $teacherId && 
+                        $slotStartTime < $endTime && 
+                        $slotEndTime > $startTime) {
                         $teacherHasConflict = true;
                         break;
                     }
