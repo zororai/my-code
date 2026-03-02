@@ -451,6 +451,15 @@
                 <span class="font-medium" x-show="!collapsed">My Offers</span>
             </div>
         </a>
+
+        <a href="{{ route('exchange-requests.index') }}" class="flex items-center px-3 py-2 text-sm text-white rounded-lg hover:bg-blue-700 transition-colors" :class="collapsed ? 'justify-center' : 'justify-between'" :title="collapsed ? 'Exchange Requests' : ''">
+            <div class="flex items-center" :class="collapsed ? '' : 'space-x-3'">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                </svg>
+                <span class="font-medium" x-show="!collapsed">Received Exchange Requests</span>
+            </div>
+        </a>
         @endrole
 
         @role('Admin')

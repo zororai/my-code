@@ -990,4 +990,29 @@ Route::group(['middleware' => ['auth', 'role:Zimbabwe Currency Exchange (ZimFX)|
     Route::get('/fx/offers/{id}/edit', 'FxOfferController@edit')->name('fx.offers.edit');
     Route::put('/fx/offers/{id}', 'FxOfferController@update')->name('fx.offers.update');
     Route::delete('/fx/offers/{id}', 'FxOfferController@destroy')->name('fx.offers.destroy');
+    
+    // Exchange Request Management Routes
+    Route::get('/exchange-requests', 'ExchangeRequestController@index')->name('exchange-requests.index');
+    Route::get('/exchange-requests/{id}', 'ExchangeRequestController@show')->name('exchange-requests.show');
+    Route::post('/exchange-requests/{id}/accept', 'ExchangeRequestController@accept')->name('exchange-requests.accept');
+    Route::post('/exchange-requests/{id}/reject', 'ExchangeRequestController@reject')->name('exchange-requests.reject');
+    Route::get('/exchange-requests/{id}/confirmation', 'ExchangeRequestController@confirmation')->name('exchange-requests.confirmation');
+    Route::post('/exchange-requests/{id}/provider-confirm-payment', 'ExchangeRequestController@providerConfirmPayment')->name('exchange-requests.provider-confirm-payment');
+});
+
+// FX Provider Dashboard and Account Management Routes
+Route::group(['middleware' => ['auth', 'role:Zimbabwe Currency Exchange (ZimFX)|Global FX Solutions']], function () {
+    Route::get('/fx-provider/dashboard', 'FxProviderDashboardController@index')->name('fx-provider.dashboard');
+    Route::get('/fx-provider/accounts', 'FxProviderDashboardController@accounts')->name('fx-provider.accounts');
+    Route::post('/fx-provider/accounts', 'FxProviderDashboardController@storeAccount')->name('fx-provider.accounts.store');
+    Route::get('/fx-provider/initiate-exchange', 'FxProviderDashboardController@initiateExchange')->name('fx-provider.initiate-exchange');
+    Route::post('/fx-provider/process-exchange', 'FxProviderDashboardController@processExchange')->name('fx-provider.process-exchange');
+});
+
+// Exchange Request Routes for Users
+Route::group(['middleware' => ['auth']], function () {
+    Route::get('/my-exchange-requests', 'ExchangeRequestController@userRequests')->name('exchange-requests.user-requests');
+    Route::get('/exchange-requests/create', 'ExchangeRequestController@create')->name('exchange-requests.create');
+    Route::post('/exchange-requests', 'ExchangeRequestController@store')->name('exchange-requests.store');
+    Route::post('/exchange-requests/{id}/user-confirm-payment', 'ExchangeRequestController@userConfirmPayment')->name('exchange-requests.user-confirm-payment');
 });
