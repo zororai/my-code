@@ -48,7 +48,7 @@ class Handler extends ExceptionHandler
     {
         // Handle 419 Page Expired (CSRF token mismatch)
         if ($exception instanceof \Illuminate\Session\TokenMismatchException) {
-            return redirect('/web');
+            return redirect('/logins');
         }
 
         return parent::render($request, $exception);
