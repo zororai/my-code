@@ -69,9 +69,6 @@
 
             <!-- Header -->
             <div class="text-center mb-8">
-                <div class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden bg-white shadow-lg">
-                    <img src="{{ asset(\App\WebsiteSetting::get('site_logo', 'images/logo.png')) }}" alt="{{ \App\WebsiteSetting::get('school_name', 'Dzidzo Student Portal') }}" class="w-16 h-16 object-contain">
-                </div>
                 <h2 class="text-2xl font-bold text-gray-900">Welcome Back</h2>
                 <p class="mt-2 text-sm text-gray-500">Sign in to your account</p>
             </div>
@@ -140,10 +137,6 @@
                 </div>
             </form>
 
-            <!-- Footer -->
-            <div class="mt-6 text-center">
-                <p class="text-xs text-gray-400">{{ \App\WebsiteSetting::get('school_name', 'Dzidzo Student Portal') }}</p>
-            </div>
         </div>
     </div>
 

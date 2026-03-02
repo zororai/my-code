@@ -977,3 +977,17 @@ Route::group(['middleware' => ['auth','role:Student']], function () {
    Route::get('/my-exercises/{exercise}/results', 'StudentExerciseController@results')->name('student.exercises.results');
 
 });
+
+// FX Marketplace Routes (Public access to view marketplace)
+Route::get('/fx/marketplace', 'FxOfferController@marketplace')->name('fx.marketplace');
+Route::get('/fx/offers/{id}', 'FxOfferController@show')->name('fx.offers.show');
+
+// FX Provider Routes (Only for Zimbabwe Currency Exchange (ZimFX) and Global FX Solutions roles)
+Route::group(['middleware' => ['auth', 'role:Zimbabwe Currency Exchange (ZimFX)|Global FX Solutions']], function () {
+    Route::get('/fx/offers/create', 'FxOfferController@create')->name('fx.offers.create');
+    Route::post('/fx/offers', 'FxOfferController@store')->name('fx.offers.store');
+    Route::get('/fx/my-offers', 'FxOfferController@myOffers')->name('fx.offers.my-offers');
+    Route::get('/fx/offers/{id}/edit', 'FxOfferController@edit')->name('fx.offers.edit');
+    Route::put('/fx/offers/{id}', 'FxOfferController@update')->name('fx.offers.update');
+    Route::delete('/fx/offers/{id}', 'FxOfferController@destroy')->name('fx.offers.destroy');
+});
