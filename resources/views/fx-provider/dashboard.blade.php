@@ -253,9 +253,9 @@
                     @endforeach
                 </div>
                 
-                <div class="mt-4">
-                    <a href="{{ route('exchange-requests.index') }}" class="block text-center text-blue-600 hover:text-blue-700 font-semibold text-sm">
-                        View All Transactions →
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <a href="{{ route('exchange-requests.index') }}" class="block w-full px-4 py-3 bg-blue-600 text-white text-center font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                        View All Transactions
                     </a>
                 </div>
             @else

@@ -112,6 +112,23 @@
                     <h3 class="text-xl font-bold text-gray-900">Transaction Summary</h3>
                 </div>
 
+                <!-- Transaction Details -->
+                <div class="mb-6 space-y-4">
+                    <!-- To: Acquire Institution Name -->
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <p class="text-xs text-gray-500 mb-1">To</p>
+                        <p class="text-lg font-semibold text-gray-900">{{ $exchangeRequest->fxProvider->provider_name ?? 'FX Provider' }}</p>
+                    </div>
+
+                    <!-- Destination Account -->
+                    @if($exchangeRequest->user_destination_account)
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <p class="text-xs text-gray-500 mb-1">Destination Account</p>
+                        <p class="text-lg font-mono font-semibold text-gray-900">{{ \App\Helpers\AccountHelper::maskAccountNumber($exchangeRequest->user_destination_account) }}</p>
+                    </div>
+                    @endif
+                </div>
+
                 <!-- Exchange Amount -->
                 <div class="mb-6 p-6 bg-gradient-to-br from-green-50 to-blue-50 rounded-xl">
                     <div class="flex justify-between items-start mb-4">
@@ -121,15 +138,9 @@
                             <p class="text-2xl font-bold text-green-600">{{ $exchangeRequest->source_currency }}</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-sm text-gray-600 mb-1">You Receive</p>
-                            <p class="text-4xl font-bold text-blue-600">{{ number_format($exchangeRequest->destination_amount ?? $exchangeRequest->source_amount * 0.85, 2) }}</p>
-                            <p class="text-2xl font-bold text-blue-600">{{ $exchangeRequest->destination_currency }}</p>
+                            <p class="text-sm text-gray-600 mb-1">Exchange Rate</p>
+                            <p class="text-lg font-bold text-gray-900">1 {{ $exchangeRequest->source_currency }} = {{ number_format($exchangeRequest->exchange_rate ?? 0.85, 2) }} {{ $exchangeRequest->destination_currency }}</p>
                         </div>
-                    </div>
-                    
-                    <div class="pt-4 border-t border-gray-200">
-                        <p class="text-sm text-gray-600">Exchange Rate</p>
-                        <p class="text-lg font-bold text-gray-900">1 {{ $exchangeRequest->source_currency }} = {{ number_format($exchangeRequest->exchange_rate ?? 0.85, 2) }} {{ $exchangeRequest->destination_currency }}</p>
                     </div>
                 </div>
 
@@ -138,25 +149,35 @@
                     <h4 class="text-sm font-semibold text-gray-700 mb-3">Fee Breakdown</h4>
                     <div class="space-y-2">
                         <div class="flex justify-between text-sm">
-                            <span class="text-gray-600">PANETA Processing Fee (0.99%)</span>
-                            <span class="font-semibold text-gray-900">{{ number_format($exchangeRequest->processing_fee ?? 9.90, 2) }} {{ $exchangeRequest->source_currency }}</span>
+                            <span class="text-gray-600">Transaction Amount</span>
+                            <span class="font-semibold text-gray-900">{{ number_format($exchangeRequest->source_amount, 2) }} {{ $exchangeRequest->source_currency }}</span>
                         </div>
                         <div class="flex justify-between text-sm">
-                            <span class="text-gray-600">Provider Fee (0.20%)</span>
-                            <span class="font-semibold text-gray-900">{{ number_format($exchangeRequest->provider_fee ?? 2.00, 2) }} {{ $exchangeRequest->source_currency }}</span>
+                            <span class="text-gray-600">PANĒTA Fee (0.99%)</span>
+                            <span class="font-semibold text-gray-900">{{ number_format($exchangeRequest->processing_fee ?? ($exchangeRequest->source_amount * 0.0099), 2) }} {{ $exchangeRequest->source_currency }}</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">FX Provider Processing Fee ({{ number_format((($exchangeRequest->provider_fee ?? 0) / ($exchangeRequest->destination_amount ?? 1)) * 100, 2) }}% of Exchanged Amount)</span>
+                            <span class="font-semibold text-gray-900">{{ number_format($exchangeRequest->provider_fee ?? 0, 2) }} {{ $exchangeRequest->destination_currency }}</span>
                         </div>
                         <div class="pt-2 border-t border-gray-200 flex justify-between">
-                            <span class="font-semibold text-gray-700">Total Fees</span>
-                            <span class="font-bold text-red-600">{{ number_format($exchangeRequest->total_fees ?? 11.90, 2) }} {{ $exchangeRequest->source_currency }}</span>
+                            <span class="font-semibold text-gray-700">Total Amount (to be debited)</span>
+                            <span class="font-bold text-red-600">{{ number_format(($exchangeRequest->source_amount ?? 0) + ($exchangeRequest->processing_fee ?? 0) + ($exchangeRequest->provider_fee ?? 0), 2) }} {{ $exchangeRequest->source_currency }}</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Net Amount -->
-                <div class="mb-6 p-4 bg-purple-50 rounded-lg">
+                <!-- Received Amount -->
+                <div class="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border-2 border-blue-200">
                     <div class="flex justify-between items-center">
-                        <span class="text-sm font-semibold text-gray-700">Net Amount</span>
-                        <span class="text-2xl font-bold text-purple-600">{{ number_format(($exchangeRequest->source_amount ?? 0) - ($exchangeRequest->total_fees ?? 11.90), 2) }} {{ $exchangeRequest->source_currency }}</span>
+                        <div>
+                            <p class="text-xs text-gray-600 mb-1">Received Amount</p>
+                            <p class="text-sm text-gray-500">Amount to be received by receiver</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-3xl font-bold text-blue-600">{{ number_format($exchangeRequest->destination_amount ?? 0, 2) }}</p>
+                            <p class="text-xl font-bold text-blue-600">{{ $exchangeRequest->destination_currency }}</p>
+                        </div>
                     </div>
                 </div>
 

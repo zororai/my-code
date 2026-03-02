@@ -51,7 +51,7 @@
 
                         <div class="mb-4">
                             <p class="text-xs text-gray-500 mb-1">Account Number</p>
-                            <p class="text-sm font-mono font-semibold text-gray-900">{{ $account->account_number }}</p>
+                            <p class="text-sm font-mono font-semibold text-gray-900">{{ \App\Helpers\AccountHelper::maskAccountNumber($account->account_number) }}</p>
                         </div>
 
                         <div class="grid grid-cols-3 gap-4 mb-4">

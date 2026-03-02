@@ -47,7 +47,7 @@
                                         data-currency="{{ $account->currency }}" 
                                         data-balance="{{ $account->available_balance }}"
                                         data-name="{{ $account->account_name }}">
-                                        {{ $account->account_name }} - {{ $account->account_number }} (Available: {{ number_format($account->available_balance, 2) }} {{ $account->currency }})
+                                        {{ $account->account_name }} - {{ \App\Helpers\AccountHelper::maskAccountNumber($account->account_number) }} (Available: {{ number_format($account->available_balance, 2) }} {{ $account->currency }})
                                     </option>
                                 @endforeach
                             </optgroup>
@@ -95,7 +95,7 @@
                                     <option value="{{ $account->id }}" 
                                         data-currency="{{ $account->currency }}"
                                         data-name="{{ $account->account_name }}">
-                                        {{ $account->account_name }} - {{ $account->account_number }} ({{ $account->currency }})
+                                        {{ $account->account_name }} - {{ \App\Helpers\AccountHelper::maskAccountNumber($account->account_number) }} ({{ $account->currency }})
                                     </option>
                                 @endforeach
                             </optgroup>
