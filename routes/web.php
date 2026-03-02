@@ -1007,6 +1007,13 @@ Route::group(['middleware' => ['auth', 'role:Zimbabwe Currency Exchange (ZimFX)|
     Route::post('/fx-provider/accounts', 'FxProviderDashboardController@storeAccount')->name('fx-provider.accounts.store');
     Route::get('/fx-provider/initiate-exchange', 'FxProviderDashboardController@initiateExchange')->name('fx-provider.initiate-exchange');
     Route::post('/fx-provider/process-exchange', 'FxProviderDashboardController@processExchange')->name('fx-provider.process-exchange');
+    
+    // Profile and Account Management
+    Route::get('/fx-provider/profile', 'FxProviderDashboardController@profile')->name('fx-provider.profile');
+    Route::get('/fx-provider/edit-account', 'FxProviderDashboardController@editAccount')->name('fx-provider.edit-account');
+    Route::post('/fx-provider/update-account', 'FxProviderDashboardController@updateAccount')->name('fx-provider.update-account');
+    Route::get('/fx-provider/security', 'FxProviderDashboardController@security')->name('fx-provider.security');
+    Route::post('/fx-provider/update-password', 'FxProviderDashboardController@updatePassword')->name('fx-provider.update-password');
 });
 
 // Exchange Request Routes for Users

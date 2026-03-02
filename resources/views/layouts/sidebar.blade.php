@@ -47,6 +47,9 @@
             </div>
         </a>
 
+        @hasanyrole('Zimbabwe Currency Exchange (ZimFX)|Global FX Solutions')
+        <!-- FX Provider users see only Service Provider menu - skip all other sections -->
+        @else
         <!-- Home/Dashboard -->
         @can('sidebar-home')
         <a href="{{ route('home') }}" class="flex items-center px-3 py-2 text-sm text-white rounded-lg hover:bg-blue-700 transition-colors" :class="collapsed ? 'justify-center' : 'justify-between'" :title="collapsed ? 'Home' : ''">
@@ -419,48 +422,50 @@
         </a>
         @endrole
 
-        <!-- FX Provider Section (Zimbabwe Currency Exchange & Global FX Solutions) -->
-        @role('Zimbabwe Currency Exchange (ZimFX)|Global FX Solutions')
+        @endhasanyrole
+
+        <!-- Service Provider Section (Zimbabwe Currency Exchange & Global FX Solutions) -->
+        @hasanyrole('Zimbabwe Currency Exchange (ZimFX)|Global FX Solutions')
         <div class="pt-2 pb-1" x-show="!collapsed">
-            <span class="px-3 text-xs font-semibold text-blue-200 uppercase tracking-wider">FX Provider</span>
+            <span class="px-3 text-xs font-semibold text-blue-200 uppercase tracking-wider">Service Provider</span>
         </div>
 
-        <a href="{{ route('fx.marketplace') }}" class="flex items-center px-3 py-2 text-sm text-white rounded-lg hover:bg-blue-700 transition-colors" :class="collapsed ? 'justify-center' : 'justify-between'" :title="collapsed ? 'FX Marketplace' : ''">
+        <a href="{{ route('fx-provider.dashboard') }}" class="flex items-center px-3 py-2 text-sm text-white rounded-lg hover:bg-blue-700 transition-colors" :class="collapsed ? 'justify-center' : 'justify-between'" :title="collapsed ? 'Provider Dashboard' : ''">
             <div class="flex items-center" :class="collapsed ? '' : 'space-x-3'">
                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z"/>
                 </svg>
-                <span class="font-medium" x-show="!collapsed">FX Marketplace</span>
+                <span class="font-medium" x-show="!collapsed">Provider Dashboard</span>
             </div>
         </a>
 
-        <a href="{{ route('fx.offers.create') }}" class="flex items-center px-3 py-2 text-sm text-white rounded-lg hover:bg-blue-700 transition-colors" :class="collapsed ? 'justify-center' : 'justify-between'" :title="collapsed ? 'Create Quotes' : ''">
-            <div class="flex items-center" :class="collapsed ? '' : 'space-x-3'">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-                <span class="font-medium" x-show="!collapsed">Create Quotes</span>
-            </div>
-        </a>
-
-        <a href="{{ route('fx.offers.my-offers') }}" class="flex items-center px-3 py-2 text-sm text-white rounded-lg hover:bg-blue-700 transition-colors" :class="collapsed ? 'justify-center' : 'justify-between'" :title="collapsed ? 'My Offers' : ''">
+        <a href="{{ route('fx.offers.my-offers') }}" class="flex items-center px-3 py-2 text-sm text-white rounded-lg hover:bg-blue-700 transition-colors" :class="collapsed ? 'justify-center' : 'justify-between'" :title="collapsed ? 'FX Offers' : ''">
             <div class="flex items-center" :class="collapsed ? '' : 'space-x-3'">
                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
-                <span class="font-medium" x-show="!collapsed">My Offers</span>
+                <span class="font-medium" x-show="!collapsed">FX Offers</span>
             </div>
         </a>
 
-        <a href="{{ route('exchange-requests.index') }}" class="flex items-center px-3 py-2 text-sm text-white rounded-lg hover:bg-blue-700 transition-colors" :class="collapsed ? 'justify-center' : 'justify-between'" :title="collapsed ? 'Exchange Requests' : ''">
+        <a href="{{ route('exchange-requests.index') }}" class="flex items-center px-3 py-2 text-sm text-white rounded-lg hover:bg-blue-700 transition-colors" :class="collapsed ? 'justify-center' : 'justify-between'" :title="collapsed ? 'Trade Requests' : ''">
             <div class="flex items-center" :class="collapsed ? '' : 'space-x-3'">
                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
                 </svg>
-                <span class="font-medium" x-show="!collapsed">Received Exchange Requests</span>
+                <span class="font-medium" x-show="!collapsed">Trade Requests</span>
             </div>
         </a>
-        @endrole
+
+        <a href="#" class="flex items-center px-3 py-2 text-sm text-white rounded-lg hover:bg-blue-700 transition-colors" :class="collapsed ? 'justify-center' : 'justify-between'" :title="collapsed ? 'Business Reports' : ''">
+            <div class="flex items-center" :class="collapsed ? '' : 'space-x-3'">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <span class="font-medium" x-show="!collapsed">Business Reports</span>
+            </div>
+        </a>
+        @endhasanyrole
 
         @role('Admin')
         <!-- Admin Section -->

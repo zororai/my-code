@@ -9,6 +9,7 @@ use App\CrossBorderTransactionIntent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class FxProviderDashboardController extends Controller
 {
@@ -296,5 +297,99 @@ class FxProviderDashboardController extends Controller
             DB::rollBack();
             return redirect()->back()->with('error', 'Transaction failed: ' . $e->getMessage());
         }
+    }
+    
+    /**
+     * Show provider profile.
+     */
+    public function profile()
+    {
+        $user = auth()->user();
+        $fxProvider = FxProvider::where('user_id', $user->id)->first();
+        
+        return view('fx-provider.profile', compact('user', 'fxProvider'));
+    }
+    
+    /**
+     * Show edit account form.
+     */
+    public function editAccount()
+    {
+        $user = auth()->user();
+        $fxProvider = FxProvider::where('user_id', $user->id)->first();
+        
+        return view('fx-provider.edit-account', compact('user', 'fxProvider'));
+    }
+    
+    /**
+     * Update account information.
+     */
+    public function updateAccount(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . auth()->id(),
+            'phone' => 'nullable|string|max:20',
+            'provider_name' => 'nullable|string|max:255',
+            'contact_email' => 'nullable|email|max:255',
+            'contact_phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
+            'city' => 'nullable|string|max:100',
+            'country' => 'nullable|string|max:100',
+        ]);
+        
+        $user = auth()->user();
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'phone' => $request->phone,
+        ]);
+        
+        $fxProvider = FxProvider::where('user_id', $user->id)->first();
+        if ($fxProvider) {
+            $fxProvider->update([
+                'provider_name' => $request->provider_name ?? $user->name,
+                'contact_email' => $request->contact_email ?? $user->email,
+                'contact_phone' => $request->contact_phone ?? $user->phone,
+                'address' => $request->address,
+                'city' => $request->city,
+                'country' => $request->country,
+            ]);
+        }
+        
+        return redirect()->back()->with('success', 'Account updated successfully!');
+    }
+    
+    /**
+     * Show security settings.
+     */
+    public function security()
+    {
+        $user = auth()->user();
+        
+        return view('fx-provider.security', compact('user'));
+    }
+    
+    /**
+     * Update password.
+     */
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+        
+        $user = auth()->user();
+        
+        if (!Hash::check($request->current_password, $user->password)) {
+            return redirect()->back()->with('error', 'Current password is incorrect.');
+        }
+        
+        $user->update([
+            'password' => Hash::make($request->password),
+        ]);
+        
+        return redirect()->back()->with('success', 'Password updated successfully!');
     }
 }
