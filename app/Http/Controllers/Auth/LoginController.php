@@ -66,6 +66,19 @@ class LoginController extends Controller
         return $this->sendFailedLoginResponse($request);
     }
 
+    /**
+     * The user has been authenticated.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  mixed  $user
+     * @return mixed
+     */
+    protected function authenticated(Request $request, $user)
+    {
+        // Explicitly redirect to dashboard, ignoring landing page setting
+        return redirect('/home');
+    }
+
     protected function verifyCaptcha($token)
     {
         $secret = config('services.recaptcha.secret');
