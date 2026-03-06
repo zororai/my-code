@@ -242,6 +242,7 @@
                         <li><a class="nav-link" href="{{ route('shop.index') }}">Shop</a></li>
                         <li><a class="nav-link" href="{{ route('website.News') }}">News Letter</a></li>
                         <li><a class="nav-link" href="{{ route('website.contact') }}">Contact Us</a></li>
+                        <li><a class="nav-link" href="{{ url('/logins') }}" style="background-color: var(--primary-color); color: white; padding: 8px 20px; border-radius: 5px; margin-left: 10px;">Login</a></li>
                     </ul>
                 </div>
             </div>

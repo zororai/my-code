@@ -39,14 +39,8 @@ class LoginController extends Controller
      */
     public function redirectTo()
     {
-        $landingPage = \App\SchoolSetting::get('landing_page', 'logins');
-        
-        // Map landing page setting to actual route
-        if ($landingPage === 'web') {
-            return '/web';
-        }
-        
-        // Default to /home for 'logins' or any other value
+        // Always redirect authenticated users to their dashboard
+        // Landing page setting only affects unauthenticated visitors
         return '/home';
     }
 

@@ -18,14 +18,8 @@ class RedirectIfAuthenticated
     public function handle($request, Closure $next, $guard = null)
     {
         if (Auth::guard($guard)->check()) {
-            $landingPage = \App\SchoolSetting::get('landing_page', 'logins');
-            
-            // Map landing page setting to actual route
-            if ($landingPage === 'web') {
-                return redirect('/web');
-            }
-            
-            // Default to /home for 'logins' or any other value
+            // Authenticated users should always go to their dashboard
+            // Landing page setting only affects unauthenticated visitors
             return redirect('/home');
         }
 
