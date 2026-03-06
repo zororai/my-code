@@ -85,7 +85,7 @@
                     @endif
                 </div>
                 <div class="p-4">
-                    <h3 class="font-semibold text-lg text-gray-800 truncate" title="{{ $book->title }}">{{ $book->title }}</h3>
+                    <a href="{{ route('admin.library.books.show', $book->id) }}" class="font-semibold text-lg text-gray-800 hover:text-blue-600 truncate block" title="{{ $book->title }}">{{ $book->title }}</a>
                     <p class="text-sm text-gray-600 mb-2">{{ $book->author ?? 'Unknown Author' }}</p>
                     <p class="text-xs text-gray-500 mb-3">Book #: {{ $book->book_number }}</p>
                     

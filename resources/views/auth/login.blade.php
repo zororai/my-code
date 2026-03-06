@@ -67,6 +67,11 @@
                 </div>
             @endif
 
+            <!-- Logo -->
+            <div class="flex justify-center mb-6">
+                <img src="{{ asset(\App\WebsiteSetting::get('site_logo', 'images/logo.png')) }}" alt="Logo" class="h-16 w-auto">
+            </div>
+
             <!-- Header -->
             <div class="text-center mb-8">
                 <h2 class="text-2xl font-bold text-gray-900">Welcome Back</h2>

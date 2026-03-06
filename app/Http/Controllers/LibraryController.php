@@ -410,6 +410,24 @@ class LibraryController extends Controller
     }
 
     /**
+     * Show book details
+     */
+    public function showBook($id)
+    {
+        $book = Book::with(['copies' => function($query) {
+            $query->orderBy('copy_number');
+        }])->findOrFail($id);
+        
+        $borrowHistory = LibraryRecord::where('book_id', $id)
+            ->with(['student.user', 'teacher.user', 'issuedBy'])
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+        
+        return view('backend.admin.library.books.show', compact('book', 'borrowHistory'));
+    }
+
+    /**
      * Show form to add a new book
      */
     public function createBook()
@@ -685,7 +703,7 @@ class LibraryController extends Controller
 
         $request->validate([
             'copies' => 'required|array|min:1',
-            'copies.*.isbn' => 'required|string|max:50|unique:book_copies,isbn',
+            'copies.*.isbn' => 'nullable|string|max:50|unique:book_copies,isbn',
             'copies.*.condition' => 'required|in:excellent,good,fair,poor,damaged',
             'copies.*.condition_notes' => 'nullable|string|max:500',
         ]);
@@ -694,7 +712,7 @@ class LibraryController extends Controller
         foreach ($request->copies as $index => $copyData) {
             BookCopy::create([
                 'book_id' => $book->id,
-                'isbn' => $copyData['isbn'],
+                'isbn' => !empty($copyData['isbn']) ? $copyData['isbn'] : null,
                 'copy_number' => $book->book_number . '-' . ($book->copies()->count() + $copiesAdded + 1),
                 'condition' => $copyData['condition'],
                 'condition_notes' => $copyData['condition_notes'] ?? null,

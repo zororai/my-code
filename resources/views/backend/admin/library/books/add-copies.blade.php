@@ -6,7 +6,7 @@
         <div class="flex justify-between items-center mb-6">
             <div>
                 <h1 class="text-2xl font-bold text-gray-800">Add Book Copies</h1>
-                <p class="text-gray-600">Add copies with unique ISBN numbers for: <span class="font-semibold">{{ $book->title }}</span></p>
+                <p class="text-gray-600">Add individual copies for: <span class="font-semibold">{{ $book->title }}</span></p>
             </div>
             <a href="{{ route('admin.library.books.copies', $book->id) }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,10 +62,10 @@
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">ISBN *</label>
-                                <input type="text" name="copies[0][isbn]" required
+                                <label class="block text-sm font-medium text-gray-700 mb-1">ISBN (Optional)</label>
+                                <input type="text" name="copies[0][isbn]"
                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Enter unique ISBN">
+                                    placeholder="Enter ISBN if available">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Condition *</label>
@@ -121,10 +121,10 @@ function addCopyRow() {
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">ISBN *</label>
-                <input type="text" name="copies[${copyIndex}][isbn]" required
+                <label class="block text-sm font-medium text-gray-700 mb-1">ISBN (Optional)</label>
+                <input type="text" name="copies[${copyIndex}][isbn]"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter unique ISBN">
+                    placeholder="Enter ISBN if available">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Condition *</label>

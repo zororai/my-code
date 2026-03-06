@@ -10,6 +10,8 @@
                 <path x-show="sidebarOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
             </svg>
         </button>
+        <!-- Logo -->
+        <img src="{{ asset(\App\WebsiteSetting::get('site_logo', 'images/logo.png')) }}" alt="Logo" class="h-10 w-auto mr-3">
         <span class="font-semibold text-sm sm:text-xl tracking-tight">{{ \App\WebsiteSetting::get('school_name', 'Rose of sharon student portal') }}</span>
     </div>
     <div class="relative">

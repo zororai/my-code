@@ -753,6 +753,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/admin/library/books', 'LibraryController@books')->name('admin.library.books');
         Route::get('/admin/library/books/create', 'LibraryController@createBook')->name('admin.library.books.create');
         Route::post('/admin/library/books', 'LibraryController@storeBook')->name('admin.library.books.store');
+        Route::get('/admin/library/books/{id}', 'LibraryController@showBook')->name('admin.library.books.show');
         Route::get('/admin/library/books/{id}/edit', 'LibraryController@editBook')->name('admin.library.books.edit');
         Route::put('/admin/library/books/{id}', 'LibraryController@updateBook')->name('admin.library.books.update');
         Route::get('/admin/library/books/{id}/history', 'LibraryController@bookHistory')->name('admin.library.books.history');
