@@ -78,7 +78,9 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
                     'roll_number'           => $rollNumber,
                     'gender'                => $row['student_gender'] ?? 'male',
                     'phone'                 => $row['student_phone'] ?? '',
-                    'dateofbirth'           => $row['dateofbirth'] ?? now()->subYears(10)->format('Y-m-d'),
+                    'dateofbirth'           => !empty($row['dateofbirth'])
+                        ? \Carbon\Carbon::parse(trim($row['dateofbirth']))->format('Y-m-d')
+                        : now()->subYears(10)->format('Y-m-d'),
                     'current_address'       => 'To be updated',
                     'permanent_address'     => 'To be updated',
                     'student_type'          => $row['student_type'] ?? 'day',
