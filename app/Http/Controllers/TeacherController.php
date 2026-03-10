@@ -1534,8 +1534,8 @@ class TeacherController extends Controller
             return back()->with('error', 'Teacher user account not found.');
         }
 
-        // Generate temporary password
-        $tempPassword = Str::random(8);
+        // Set default password
+        $tempPassword = '12345678';
         
         // Update user's password and set must_change_password flag
         $teacher->user->update([
