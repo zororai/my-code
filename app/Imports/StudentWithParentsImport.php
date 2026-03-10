@@ -46,6 +46,16 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
                     continue;
                 }
                 
+                // Validate dateofbirth before creating user
+                if (!empty($row['dateofbirth'])) {
+                    try {
+                        \Carbon\Carbon::parse(trim($row['dateofbirth']))->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        $this->errors[] = "Row {$rowNumber}: Invalid date of birth format '{$row['dateofbirth']}'";
+                        continue;
+                    }
+                }
+                
                 // Check if email already exists
                 if (User::where('email', $row['student_email'])->exists()) {
                     $this->errors[] = "Row {$rowNumber}: Email '{$row['student_email']}' already exists";

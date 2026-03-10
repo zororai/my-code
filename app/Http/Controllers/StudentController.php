@@ -221,7 +221,7 @@ class StudentController extends Controller
                 })
             ],
             'gender'            => 'required|string',
-            'phone'             => 'required|string|max:255',
+            'phone'             => 'nullable|string|max:255',
             'dateofbirth'       => 'required|date',
             'current_address'   => 'required|string|max:255',
             'permanent_address' => 'required|string|max:255',
