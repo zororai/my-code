@@ -6,6 +6,7 @@ use App\User;
 use App\Student;
 use App\Parents;
 use App\Grade;
+use App\SchoolSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -37,30 +38,31 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
                     continue;
                 }
                 
-                if (empty($row['student_email'])) {
-                    $this->errors[] = "Row {$rowNumber}: Student email is required";
-                    continue;
-                }
-                
                 if (empty($row['class_name'])) {
                     $this->errors[] = "Row {$rowNumber}: Class name is required";
                     continue;
                 }
                 
-                // Validate dateofbirth before creating user
-                if (!empty($row['dateofbirth'])) {
-                    try {
-                        $this->parseDate($row['dateofbirth']);
-                    } catch (\Exception $e) {
-                        $this->errors[] = "Row {$rowNumber}: Invalid date of birth format '{$row['dateofbirth']}'";
-                        continue;
-                    }
-                }
+                // No strict validation for dateofbirth - will handle any format during parsing
                 
-                // Generate unique email if duplicate exists
-                $studentEmail = $row['student_email'];
-                if (User::where('email', $studentEmail)->exists()) {
-                    $studentEmail = $this->generateUniqueEmail($studentEmail);
+                // Generate or validate email
+                if (empty($row['student_email'])) {
+                    // Get email domain from settings
+                    $emailDomain = SchoolSetting::get('student_email_domain', 'dzidzo.co.zw');
+                    
+                    // Auto-generate email from student name
+                    $baseName = strtolower(str_replace(' ', '', $row['student_name']));
+                    $studentEmail = $baseName . '@' . $emailDomain;
+                    // Ensure uniqueness
+                    if (User::where('email', $studentEmail)->exists()) {
+                        $studentEmail = $this->generateUniqueEmail($studentEmail);
+                    }
+                } else {
+                    // Use provided email and ensure uniqueness
+                    $studentEmail = $row['student_email'];
+                    if (User::where('email', $studentEmail)->exists()) {
+                        $studentEmail = $this->generateUniqueEmail($studentEmail);
+                    }
                 }
                 
                 // Find class
@@ -216,7 +218,7 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
     {
         return [
             'student_name' => 'required|string',
-            'student_email' => 'required|email',
+            'student_email' => 'nullable|email',
             'class_name' => 'required|string',
         ];
     }
@@ -225,7 +227,6 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
     {
         return [
             'student_name.required' => 'Student name is required',
-            'student_email.required' => 'Student email is required',
             'student_email.email' => 'Student email must be valid',
             'class_name.required' => 'Class name is required',
         ];
@@ -262,7 +263,7 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
         // Split email into local part and domain
         $parts = explode('@', $email);
         $localPart = $parts[0];
-        $domain = $parts[1] ?? 'roshs.co.zw';
+        $domain = $parts[1] ?? SchoolSetting::get('student_email_domain', 'dzidzo.co.zw');
         
         // Check if email already has a number suffix
         if (preg_match('/^(.+?)(\d+)$/', $localPart, $matches)) {
