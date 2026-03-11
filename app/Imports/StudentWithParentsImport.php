@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithValidation
 {
@@ -49,7 +50,7 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
                 // Validate dateofbirth before creating user
                 if (!empty($row['dateofbirth'])) {
                     try {
-                        \Carbon\Carbon::parse(trim($row['dateofbirth']))->format('Y-m-d');
+                        $this->parseDate($row['dateofbirth']);
                     } catch (\Exception $e) {
                         $this->errors[] = "Row {$rowNumber}: Invalid date of birth format '{$row['dateofbirth']}'";
                         continue;
@@ -89,7 +90,7 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
                     'gender'                => $row['student_gender'] ?? 'male',
                     'phone'                 => $row['student_phone'] ?? '',
                     'dateofbirth'           => !empty($row['dateofbirth'])
-                        ? \Carbon\Carbon::parse(trim($row['dateofbirth']))->format('Y-m-d')
+                        ? $this->parseDate($row['dateofbirth'])
                         : now()->subYears(10)->format('Y-m-d'),
                     'current_address'       => 'To be updated',
                     'permanent_address'     => 'To be updated',
@@ -248,5 +249,32 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
     public function getSuccessCount()
     {
         return count($this->results);
+    }
+    
+    /**
+     * Parse date from Excel serial number or date string
+     *
+     * @param mixed $value
+     * @return string
+     */
+    protected function parseDate($value)
+    {
+        // Trim whitespace
+        $value = trim($value);
+        
+        // Check if it's a numeric value (Excel serial date)
+        if (is_numeric($value)) {
+            // Excel date serial number
+            try {
+                $date = ExcelDate::excelToDateTimeObject($value);
+                return $date->format('Y-m-d');
+            } catch (\Exception $e) {
+                // If Excel conversion fails, try Carbon parse
+                return \Carbon\Carbon::parse($value)->format('Y-m-d');
+            }
+        }
+        
+        // Otherwise, parse as regular date string
+        return \Carbon\Carbon::parse($value)->format('Y-m-d');
     }
 }
