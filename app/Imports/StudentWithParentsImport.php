@@ -57,10 +57,10 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
                     }
                 }
                 
-                // Check if email already exists
-                if (User::where('email', $row['student_email'])->exists()) {
-                    $this->errors[] = "Row {$rowNumber}: Email '{$row['student_email']}' already exists";
-                    continue;
+                // Generate unique email if duplicate exists
+                $studentEmail = $row['student_email'];
+                if (User::where('email', $studentEmail)->exists()) {
+                    $studentEmail = $this->generateUniqueEmail($studentEmail);
                 }
                 
                 // Find class
@@ -76,7 +76,7 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
                 // Create student user
                 $studentUser = User::create([
                     'name'      => $row['student_name'],
-                    'email'     => $row['student_email'],
+                    'email'     => $studentEmail,
                     'password'  => Hash::make('12345678'),
                     'profile_picture' => 'avatar.png',
                     'must_change_password' => true
@@ -249,6 +249,48 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
     public function getSuccessCount()
     {
         return count($this->results);
+    }
+    
+    /**
+     * Generate unique email by appending incremental numbers
+     *
+     * @param string $email
+     * @return string
+     */
+    protected function generateUniqueEmail($email)
+    {
+        // Split email into local part and domain
+        $parts = explode('@', $email);
+        $localPart = $parts[0];
+        $domain = $parts[1] ?? 'roshs.co.zw';
+        
+        // Check if email already has a number suffix
+        if (preg_match('/^(.+?)(\d+)$/', $localPart, $matches)) {
+            $baseName = $matches[1];
+            $startNumber = (int)$matches[2];
+        } else {
+            $baseName = $localPart;
+            $startNumber = 1;
+        }
+        
+        // Find the next available number
+        $counter = $startNumber;
+        $maxAttempts = 1000;
+        $attempts = 0;
+        
+        while ($attempts < $maxAttempts) {
+            $newEmail = $baseName . $counter . '@' . $domain;
+            
+            if (!User::where('email', $newEmail)->exists()) {
+                return $newEmail;
+            }
+            
+            $counter++;
+            $attempts++;
+        }
+        
+        // Fallback: use timestamp if all attempts fail
+        return $baseName . time() . '@' . $domain;
     }
     
     /**
