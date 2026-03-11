@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(RolesAndPermissionsSeeder::class);
         $this->call(SuperAdminSeeder::class);
-        $this->call(StudentParentDemoSeeder::class);
+        // $this->call(StudentParentDemoSeeder::class); // Commented out - don't create demo students
 
         $user = User::firstOrCreate(
             ['email' => 'admin@mail.com'],
