@@ -6,7 +6,6 @@ use App\User;
 use App\Student;
 use App\Parents;
 use App\Grade;
-use App\SchoolSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -38,31 +37,30 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
                     continue;
                 }
                 
+                if (empty($row['student_email'])) {
+                    $this->errors[] = "Row {$rowNumber}: Student email is required";
+                    continue;
+                }
+                
                 if (empty($row['class_name'])) {
                     $this->errors[] = "Row {$rowNumber}: Class name is required";
                     continue;
                 }
                 
-                // No strict validation for dateofbirth - will handle any format during parsing
+                // Validate dateofbirth before creating user
+                if (!empty($row['dateofbirth'])) {
+                    try {
+                        $this->parseDate($row['dateofbirth']);
+                    } catch (\Exception $e) {
+                        $this->errors[] = "Row {$rowNumber}: Invalid date of birth format '{$row['dateofbirth']}'";
+                        continue;
+                    }
+                }
                 
-                // Generate or validate email
-                if (empty($row['student_email'])) {
-                    // Get email domain from settings
-                    $emailDomain = SchoolSetting::get('student_email_domain', 'dzidzo.co.zw');
-                    
-                    // Auto-generate email from student name
-                    $baseName = strtolower(str_replace(' ', '', $row['student_name']));
-                    $studentEmail = $baseName . '@' . $emailDomain;
-                    // Ensure uniqueness
-                    if (User::where('email', $studentEmail)->exists()) {
-                        $studentEmail = $this->generateUniqueEmail($studentEmail);
-                    }
-                } else {
-                    // Use provided email and ensure uniqueness
-                    $studentEmail = $row['student_email'];
-                    if (User::where('email', $studentEmail)->exists()) {
-                        $studentEmail = $this->generateUniqueEmail($studentEmail);
-                    }
+                // Check if email already exists
+                if (User::where('email', $row['student_email'])->exists()) {
+                    $this->errors[] = "Row {$rowNumber}: Email '{$row['student_email']}' already exists";
+                    continue;
                 }
                 
                 // Find class
@@ -78,7 +76,7 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
                 // Create student user
                 $studentUser = User::create([
                     'name'      => $row['student_name'],
-                    'email'     => $studentEmail,
+                    'email'     => $row['student_email'],
                     'password'  => Hash::make('12345678'),
                     'profile_picture' => 'avatar.png',
                     'must_change_password' => true
@@ -98,7 +96,7 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
                     'permanent_address'     => 'To be updated',
                     'student_type'          => $row['student_type'] ?? 'day',
                     'curriculum_type'       => $row['curriculum_type'] ?? 'zimsec',
-                    'scholarship_percentage' => !empty($row['scholarship_percentage']) ? $row['scholarship_percentage'] : 0,
+                    'scholarship_percentage' => $row['scholarship_percentage'] ?? 0,
                     'is_new_student'        => true,
                     'chair'                 => $row['chair'] ?? null,
                     'desk'                  => $row['desk'] ?? null,
@@ -218,7 +216,7 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
     {
         return [
             'student_name' => 'required|string',
-            'student_email' => 'nullable|email',
+            'student_email' => 'required|email',
             'class_name' => 'required|string',
         ];
     }
@@ -227,6 +225,7 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
     {
         return [
             'student_name.required' => 'Student name is required',
+            'student_email.required' => 'Student email is required',
             'student_email.email' => 'Student email must be valid',
             'class_name.required' => 'Class name is required',
         ];
@@ -253,50 +252,7 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
     }
     
     /**
-     * Generate unique email by appending incremental numbers
-     *
-     * @param string $email
-     * @return string
-     */
-    protected function generateUniqueEmail($email)
-    {
-        // Split email into local part and domain
-        $parts = explode('@', $email);
-        $localPart = $parts[0];
-        $domain = $parts[1] ?? SchoolSetting::get('student_email_domain', 'dzidzo.co.zw');
-        
-        // Check if email already has a number suffix
-        if (preg_match('/^(.+?)(\d+)$/', $localPart, $matches)) {
-            $baseName = $matches[1];
-            $startNumber = (int)$matches[2];
-        } else {
-            $baseName = $localPart;
-            $startNumber = 1;
-        }
-        
-        // Find the next available number
-        $counter = $startNumber;
-        $maxAttempts = 1000;
-        $attempts = 0;
-        
-        while ($attempts < $maxAttempts) {
-            $newEmail = $baseName . $counter . '@' . $domain;
-            
-            if (!User::where('email', $newEmail)->exists()) {
-                return $newEmail;
-            }
-            
-            $counter++;
-            $attempts++;
-        }
-        
-        // Fallback: use timestamp if all attempts fail
-        return $baseName . time() . '@' . $domain;
-    }
-    
-    /**
      * Parse date from Excel serial number or date string
-     * Accepts any date format and returns default if parsing fails
      *
      * @param mixed $value
      * @return string
@@ -306,11 +262,6 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
         // Trim whitespace
         $value = trim($value);
         
-        // Return default if empty
-        if (empty($value)) {
-            return now()->subYears(10)->format('Y-m-d');
-        }
-        
         // Check if it's a numeric value (Excel serial date)
         if (is_numeric($value)) {
             // Excel date serial number
@@ -319,42 +270,11 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
                 return $date->format('Y-m-d');
             } catch (\Exception $e) {
                 // If Excel conversion fails, try Carbon parse
-                try {
-                    return \Carbon\Carbon::parse($value)->format('Y-m-d');
-                } catch (\Exception $e2) {
-                    // Return default date if all parsing fails
-                    return now()->subYears(10)->format('Y-m-d');
-                }
+                return \Carbon\Carbon::parse($value)->format('Y-m-d');
             }
         }
         
-        // Try common date formats explicitly
-        $formats = [
-            'd/m/Y',    // 20/8/2011
-            'd-m-Y',    // 20-8-2011
-            'm/d/Y',    // 8/20/2011
-            'Y-m-d',    // 2011-08-20
-            'd/m/y',    // 20/8/11
-            'd-m-y',    // 20-8-11
-        ];
-        
-        foreach ($formats as $format) {
-            try {
-                $date = \Carbon\Carbon::createFromFormat($format, $value);
-                if ($date) {
-                    return $date->format('Y-m-d');
-                }
-            } catch (\Exception $e) {
-                continue;
-            }
-        }
-        
-        // Try Carbon's general parser as fallback
-        try {
-            return \Carbon\Carbon::parse($value)->format('Y-m-d');
-        } catch (\Exception $e) {
-            // If all parsing fails, return default date
-            return now()->subYears(10)->format('Y-m-d');
-        }
+        // Otherwise, parse as regular date string
+        return \Carbon\Carbon::parse($value)->format('Y-m-d');
     }
 }
