@@ -89,12 +89,20 @@
                                 <p id="selectedClassCount" class="text-sm text-white/80">0 students</p>
                             </div>
                         </div>
-                        <div class="relative">
-                            <input type="text" id="classStudentSearch" placeholder="Search in class..." class="block w-64 pl-10 pr-4 py-2 border-0 rounded-lg bg-white/20 text-white placeholder-white/70 focus:ring-2 focus:ring-white/50 text-sm">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg class="h-4 w-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        <div class="flex items-center space-x-3">
+                            <button id="bulkDeleteBtn" class="hidden px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors">
+                                <svg class="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 448 512">
+                                    <path d="M432 32H312l-9.4-18.7A24 24 0 0 0 281.1 0H166.8a23.72 23.72 0 0 0-21.4 13.3L136 32H16A16 16 0 0 0 0 48v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16zM53.2 467a48 48 0 0 0 47.9 45h245.8a48 48 0 0 0 47.9-45L416 128H32z"/>
                                 </svg>
+                                Delete Selected (<span id="selectedCount">0</span>)
+                            </button>
+                            <div class="relative">
+                                <input type="text" id="classStudentSearch" placeholder="Search in class..." class="block w-64 pl-10 pr-4 py-2 border-0 rounded-lg bg-white/20 text-white placeholder-white/70 focus:ring-2 focus:ring-white/50 text-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg class="h-4 w-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                    </svg>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -103,6 +111,9 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    <input type="checkbox" id="selectAllStudents" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                </th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Student</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Roll Number</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Parent Status</th>
@@ -138,6 +149,9 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    <input type="checkbox" id="selectAllSearchResults" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                </th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Student</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Roll Number</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Class</th>
@@ -286,6 +300,9 @@
             const className = student.class?.class_name || 'N/A';
             
             let html = `<tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <input type="checkbox" class="student-checkbox w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" data-student-id="${student.id}">
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 h-10 w-10">
@@ -475,6 +492,107 @@
             event.preventDefault();
             $("#deletemodal").addClass("hidden");
         });
+
+        // Bulk delete functionality
+        let selectedStudents = [];
+
+        // Update selected count and button visibility
+        function updateBulkDeleteButton() {
+            const count = selectedStudents.length;
+            $('#selectedCount').text(count);
+            if (count > 0) {
+                $('#bulkDeleteBtn').removeClass('hidden');
+            } else {
+                $('#bulkDeleteBtn').addClass('hidden');
+            }
+        }
+
+        // Handle individual checkbox change
+        $(document).on('change', '.student-checkbox', function() {
+            const studentId = $(this).data('student-id');
+            if ($(this).is(':checked')) {
+                if (!selectedStudents.includes(studentId)) {
+                    selectedStudents.push(studentId);
+                }
+            } else {
+                selectedStudents = selectedStudents.filter(id => id !== studentId);
+                $('#selectAllStudents, #selectAllSearchResults').prop('checked', false);
+            }
+            updateBulkDeleteButton();
+        });
+
+        // Handle select all for class students
+        $(document).on('change', '#selectAllStudents', function() {
+            const isChecked = $(this).is(':checked');
+            $('.student-checkbox').prop('checked', isChecked);
+            
+            if (isChecked) {
+                selectedStudents = currentClassStudents.map(s => s.id);
+            } else {
+                selectedStudents = [];
+            }
+            updateBulkDeleteButton();
+        });
+
+        // Handle select all for search results
+        $(document).on('change', '#selectAllSearchResults', function() {
+            const isChecked = $(this).is(':checked');
+            $('.student-checkbox').prop('checked', isChecked);
+            
+            if (isChecked) {
+                selectedStudents = [];
+                $('.student-checkbox').each(function() {
+                    selectedStudents.push($(this).data('student-id'));
+                });
+            } else {
+                selectedStudents = [];
+            }
+            updateBulkDeleteButton();
+        });
+
+        // Handle bulk delete button click
+        $('#bulkDeleteBtn').on('click', function() {
+            if (selectedStudents.length === 0) return;
+            
+            if (confirm(`Are you sure you want to delete ${selectedStudents.length} student(s)? This action cannot be undone.`)) {
+                // Create form and submit
+                const form = $('<form>', {
+                    method: 'POST',
+                    action: '{{ route("students.bulk-delete") }}'
+                });
+                
+                form.append($('<input>', {
+                    type: 'hidden',
+                    name: '_token',
+                    value: '{{ csrf_token() }}'
+                }));
+                
+                selectedStudents.forEach(id => {
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'student_ids[]',
+                        value: id
+                    }));
+                });
+                
+                $('body').append(form);
+                form.submit();
+            }
+        });
+
+        // Reset selections when changing views
+        function resetSelections() {
+            selectedStudents = [];
+            updateBulkDeleteButton();
+            $('#selectAllStudents, #selectAllSearchResults').prop('checked', false);
+        }
+
+        // Update back to classes to reset selections
+        const originalBackToClasses = backToClasses;
+        backToClasses = function() {
+            resetSelections();
+            originalBackToClasses();
+        };
     });
 </script>
 @endpush

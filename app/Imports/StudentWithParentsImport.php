@@ -6,6 +6,7 @@ use App\User;
 use App\Student;
 use App\Parents;
 use App\Grade;
+use App\SchoolSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -37,10 +38,10 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
                     continue;
                 }
                 
-                if (empty($row['student_email'])) {
-                    $this->errors[] = "Row {$rowNumber}: Student email is required";
-                    continue;
-                }
+                // Auto-generate email if not provided
+                $studentEmail = !empty($row['student_email']) 
+                    ? $row['student_email'] 
+                    : $this->generateStudentEmail();
                 
                 if (empty($row['class_name'])) {
                     $this->errors[] = "Row {$rowNumber}: Class name is required";
@@ -58,8 +59,8 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
                 }
                 
                 // Check if email already exists
-                if (User::where('email', $row['student_email'])->exists()) {
-                    $this->errors[] = "Row {$rowNumber}: Email '{$row['student_email']}' already exists";
+                if (User::where('email', $studentEmail)->exists()) {
+                    $this->errors[] = "Row {$rowNumber}: Email '{$studentEmail}' already exists";
                     continue;
                 }
                 
@@ -76,7 +77,7 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
                 // Create student user
                 $studentUser = User::create([
                     'name'      => $row['student_name'],
-                    'email'     => $row['student_email'],
+                    'email'     => $studentEmail,
                     'password'  => Hash::make('12345678'),
                     'profile_picture' => 'avatar.png',
                     'must_change_password' => true
@@ -128,7 +129,7 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
                     'row' => $rowNumber,
                     'student' => $row['student_name'],
                     'roll_number' => $rollNumber,
-                    'email' => $row['student_email'],
+                    'email' => $studentEmail,
                     'class' => $class->class_name,
                     'parents_count' => count($parentIds),
                     'status' => 'success'
@@ -276,5 +277,49 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
         
         // Otherwise, parse as regular date string
         return \Carbon\Carbon::parse($value)->format('Y-m-d');
+    }
+    
+    /**
+     * Generate unique student email address
+     *
+     * @return string
+     */
+    protected function generateStudentEmail()
+    {
+        // Get domain from school settings
+        $domain = SchoolSetting::get('student_email_domain', 'roshs.co.zw');
+        
+        // Find the highest existing email number
+        $lastEmail = User::where('email', 'like', 'rsh%@' . $domain)
+            ->orderBy('email', 'desc')
+            ->first();
+        
+        $nextNumber = 1;
+        
+        if ($lastEmail) {
+            // Extract number from email like rsh0001@roshs.co.zw
+            preg_match('/rsh(\d+)@/', $lastEmail->email, $matches);
+            if (!empty($matches[1])) {
+                $nextNumber = intval($matches[1]) + 1;
+            }
+        }
+        
+        // Keep incrementing until we find an available email
+        $maxAttempts = 1000;
+        $attempts = 0;
+        
+        while ($attempts < $maxAttempts) {
+            $email = 'rsh' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT) . '@' . $domain;
+            
+            if (!User::where('email', $email)->exists()) {
+                return $email;
+            }
+            
+            $nextNumber++;
+            $attempts++;
+        }
+        
+        // Fallback
+        return 'rsh' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT) . '@' . $domain;
     }
 }

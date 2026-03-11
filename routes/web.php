@@ -168,6 +168,7 @@ Route::group(['middleware' => ['auth','role_or_permission:Admin|sidebar-finance|
     Route::resource('student', 'StudentController')->except(['create', 'store']);
     Route::post('student/{id}/force-password-reset', 'StudentController@forcePasswordReset')->name('student.force-password-reset');
     Route::post('students/bulk-update-to-existing', 'StudentController@bulkUpdateToExisting')->name('students.bulk-update-to-existing');
+    Route::post('students/bulk-delete', 'StudentController@bulkDelete')->name('students.bulk-delete');
     Route::post('teacher/{id}/force-password-reset', 'TeacherController@forcePasswordReset')->name('teacher.force-password-reset');
 
     // Admin Applicants Routes

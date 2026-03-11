@@ -841,6 +841,49 @@ class StudentController extends Controller
     }
 
     /**
+     * Bulk delete multiple students
+     */
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'student_ids' => 'required|array|min:1',
+            'student_ids.*' => 'required|numeric|exists:students,id'
+        ]);
+
+        $deletedCount = 0;
+        
+        foreach ($request->student_ids as $studentId) {
+            $student = Student::find($studentId);
+            
+            if ($student) {
+                $user = User::find($student->user_id);
+                
+                // Delete student record
+                $student->delete();
+                
+                // Remove role and delete user
+                if ($user) {
+                    $user->removeRole('Student');
+                    
+                    // Delete profile picture if not default
+                    if ($user->profile_picture != 'avatar.png') {
+                        $image_path = public_path('images/profile/' . $user->profile_picture);
+                        if (is_file($image_path) && file_exists($image_path)) {
+                            unlink($image_path);
+                        }
+                    }
+                    
+                    $user->delete();
+                }
+                
+                $deletedCount++;
+            }
+        }
+
+        return redirect()->route('student.index')->with('success', "{$deletedCount} student(s) deleted successfully.");
+    }
+
+    /**
      * Import students with parents from CSV/Excel file
      */
     public function importStudentsWithParents(Request $request)
