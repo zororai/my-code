@@ -217,7 +217,7 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
     {
         return [
             'student_name' => 'required|string',
-            'student_email' => 'required|email',
+            'student_email' => 'nullable|email',
             'class_name' => 'required|string',
         ];
     }
@@ -226,7 +226,6 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
     {
         return [
             'student_name.required' => 'Student name is required',
-            'student_email.required' => 'Student email is required',
             'student_email.email' => 'Student email must be valid',
             'class_name.required' => 'Class name is required',
         ];
@@ -286,19 +285,20 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
      */
     protected function generateStudentEmail()
     {
-        // Get domain from school settings
-        $domain = SchoolSetting::get('student_email_domain', 'roshs.co.zw');
+        // Get domain and prefix from school settings
+        $domain = SchoolSetting::get('student_email_domain', 'dzidzo.co.zw');
+        $prefix = SchoolSetting::get('student_email_prefix', 'rsh');
         
         // Find the highest existing email number
-        $lastEmail = User::where('email', 'like', 'rsh%@' . $domain)
+        $lastEmail = User::where('email', 'like', $prefix . '%@' . $domain)
             ->orderBy('email', 'desc')
             ->first();
         
         $nextNumber = 1;
         
         if ($lastEmail) {
-            // Extract number from email like rsh0001@roshs.co.zw
-            preg_match('/rsh(\d+)@/', $lastEmail->email, $matches);
+            // Extract number from email like rsh0001@dzidzo.co.zw
+            preg_match('/' . preg_quote($prefix, '/') . '(\d+)@/', $lastEmail->email, $matches);
             if (!empty($matches[1])) {
                 $nextNumber = intval($matches[1]) + 1;
             }
@@ -309,7 +309,7 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
         $attempts = 0;
         
         while ($attempts < $maxAttempts) {
-            $email = 'rsh' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT) . '@' . $domain;
+            $email = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT) . '@' . $domain;
             
             if (!User::where('email', $email)->exists()) {
                 return $email;
@@ -320,6 +320,6 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
         }
         
         // Fallback
-        return 'rsh' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT) . '@' . $domain;
+        return $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT) . '@' . $domain;
     }
 }
