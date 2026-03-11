@@ -89,7 +89,7 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
                     'class_id'              => $class->id,
                     'roll_number'           => $rollNumber,
                     'gender'                => $row['student_gender'] ?? 'male',
-                    'phone'                 => $row['student_phone'] ?? '',
+                    'phone'                 => $this->formatPhoneNumber($row['student_phone'] ?? ''),
                     'dateofbirth'           => !empty($row['dateofbirth'])
                         ? $this->parseDate($row['dateofbirth'])
                         : now()->subYears(10)->format('Y-m-d'),
@@ -252,6 +252,34 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
     }
     
     /**
+     * Format phone number to preserve leading zeros
+     *
+     * @param mixed $value
+     * @return string
+     */
+    protected function formatPhoneNumber($value)
+    {
+        if (empty($value)) {
+            return '';
+        }
+        
+        // Convert to string and trim
+        $phone = trim((string)$value);
+        
+        // If it's numeric and doesn't start with 0, add leading 0
+        // This handles cases where Excel stripped the leading zero
+        if (is_numeric($phone) && strlen($phone) > 0 && $phone[0] !== '0') {
+            // Check if it looks like a Zimbabwe mobile number (starts with 7)
+            // or landline (starts with 2, 4, 8, 9)
+            if (in_array($phone[0], ['7', '2', '4', '8', '9'])) {
+                $phone = '0' . $phone;
+            }
+        }
+        
+        return $phone;
+    }
+    
+    /**
      * Parse date from Excel serial number or date string
      *
      * @param mixed $value
@@ -274,7 +302,27 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
             }
         }
         
-        // Otherwise, parse as regular date string
+        // Try common date formats
+        $formats = [
+            'd/m/Y',      // 16/08/2010
+            'd-m-Y',      // 16-08-2010
+            'Y-m-d',      // 2010-08-16
+            'm/d/Y',      // 08/16/2010
+            'd/m/y',      // 16/08/10
+        ];
+        
+        foreach ($formats as $format) {
+            try {
+                $date = \Carbon\Carbon::createFromFormat($format, $value);
+                if ($date) {
+                    return $date->format('Y-m-d');
+                }
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+        
+        // Fallback to Carbon parse
         return \Carbon\Carbon::parse($value)->format('Y-m-d');
     }
     
