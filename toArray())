@@ -17,5 +17,5 @@
       Psy\Exception\ParseErrorException::fromParseError(Object(PhpParser\Error))
 
   2   C:\Users\Mazarura\Documents\GitHub\roshs\student_portal_roshs\vendor\psy\psysh\src\CodeCleaner.php:269
-      Psy\CodeCleaner::parse("<?php print_r(\App\User::latest()-;
+      Psy\CodeCleaner::parse("<?php print_r(\Spatie\Permission\Models\Role::all()-;
 ")

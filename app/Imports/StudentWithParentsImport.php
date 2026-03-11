@@ -296,6 +296,7 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
     
     /**
      * Parse date from Excel serial number or date string
+     * Accepts any date format and returns default if parsing fails
      *
      * @param mixed $value
      * @return string
@@ -305,6 +306,11 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
         // Trim whitespace
         $value = trim($value);
         
+        // Return default if empty
+        if (empty($value)) {
+            return now()->subYears(10)->format('Y-m-d');
+        }
+        
         // Check if it's a numeric value (Excel serial date)
         if (is_numeric($value)) {
             // Excel date serial number
@@ -313,11 +319,42 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
                 return $date->format('Y-m-d');
             } catch (\Exception $e) {
                 // If Excel conversion fails, try Carbon parse
-                return \Carbon\Carbon::parse($value)->format('Y-m-d');
+                try {
+                    return \Carbon\Carbon::parse($value)->format('Y-m-d');
+                } catch (\Exception $e2) {
+                    // Return default date if all parsing fails
+                    return now()->subYears(10)->format('Y-m-d');
+                }
             }
         }
         
-        // Otherwise, parse as regular date string
-        return \Carbon\Carbon::parse($value)->format('Y-m-d');
+        // Try common date formats explicitly
+        $formats = [
+            'd/m/Y',    // 20/8/2011
+            'd-m-Y',    // 20-8-2011
+            'm/d/Y',    // 8/20/2011
+            'Y-m-d',    // 2011-08-20
+            'd/m/y',    // 20/8/11
+            'd-m-y',    // 20-8-11
+        ];
+        
+        foreach ($formats as $format) {
+            try {
+                $date = \Carbon\Carbon::createFromFormat($format, $value);
+                if ($date) {
+                    return $date->format('Y-m-d');
+                }
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+        
+        // Try Carbon's general parser as fallback
+        try {
+            return \Carbon\Carbon::parse($value)->format('Y-m-d');
+        } catch (\Exception $e) {
+            // If all parsing fails, return default date
+            return now()->subYears(10)->format('Y-m-d');
+        }
     }
 }

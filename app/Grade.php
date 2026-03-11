@@ -9,6 +9,7 @@ class Grade extends Model
     protected $fillable = [
         'class_name',
         'class_numeric',
+        'school_level',
         'teacher_id',
         'class_description'
     ];
