@@ -6,7 +6,7 @@ use App\User;
 use App\Student;
 use App\Parents;
 use App\Grade;
-use App\SchoolSetting;
+use App\WebsiteSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -333,9 +333,9 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
      */
     protected function generateStudentEmail()
     {
-        // Get domain and prefix from school settings
-        $domain = SchoolSetting::get('student_email_domain', 'dzidzo.co.zw');
-        $prefix = SchoolSetting::get('student_email_prefix', 'rsh');
+        // Get domain and prefix from website settings
+        $domain = WebsiteSetting::get('student_email_domain', 'dzidzo.co.zw');
+        $prefix = WebsiteSetting::get('student_email_prefix', 'rsh');
         
         // Find the highest existing email number
         $lastEmail = User::where('email', 'like', $prefix . '%@' . $domain)

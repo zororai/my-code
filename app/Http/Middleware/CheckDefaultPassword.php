@@ -25,13 +25,26 @@ class CheckDefaultPassword
 
         // Check for Student role
         if ($user->hasRole('Student')) {
-            if (Hash::check($defaultPassword, $user->password)) {
-                if (!$request->is('student/change-password') &&
+            // Check if student has default password OR must_change_password flag
+            if (Hash::check($defaultPassword, $user->password) || $user->must_change_password) {
+                $allowedRoutes = [
+                    'student.change-password',
+                    'student.update-password',
+                    'logout',
+                    'logout.get'
+                ];
+                
+                $currentRoute = $request->route() ? $request->route()->getName() : null;
+                
+                if (!in_array($currentRoute, $allowedRoutes) &&
+                    !$request->is('student/change-password') &&
                     !$request->is('student/update-password') &&
                     !$request->is('logout')) {
                     return redirect()->route('student.change-password');
                 }
             }
+            // Return early for students to prevent the general must_change_password check
+            return $next($request);
         }
 
         // Check for Teacher role - only redirect if BOTH conditions are true:
@@ -42,18 +55,40 @@ class CheckDefaultPassword
             $isPlaceholderEmail = str_contains($user->email, '@placeholder.co.zw');
             
             if ($isDefaultPassword && $isPlaceholderEmail) {
-                if (!$request->is('teacher/change-password') &&
+                $allowedRoutes = [
+                    'teacher.change-password',
+                    'teacher.update-password',
+                    'logout',
+                    'logout.get'
+                ];
+                
+                $currentRoute = $request->route() ? $request->route()->getName() : null;
+                
+                if (!in_array($currentRoute, $allowedRoutes) &&
+                    !$request->is('teacher/change-password') &&
                     !$request->is('teacher/update-password') &&
                     !$request->is('logout')) {
                     return redirect()->route('teacher.change-password')
                         ->with('warning', 'Please complete your profile and change your default password to continue.');
                 }
             }
+            // Return early for teachers to prevent the general must_change_password check
+            return $next($request);
         }
 
-        // Check must_change_password flag for other users (Admin, etc.)
+        // Check must_change_password flag for other users (Admin, Parents, etc.)
         if ($user->must_change_password) {
-            if (!$request->is('user/force-change-password') &&
+            $allowedRoutes = [
+                'user.force-change-password',
+                'user.force-change-password.update',
+                'logout',
+                'logout.get'
+            ];
+            
+            $currentRoute = $request->route() ? $request->route()->getName() : null;
+            
+            if (!in_array($currentRoute, $allowedRoutes) && 
+                !$request->is('user/force-change-password') &&
                 !$request->is('logout')) {
                 return redirect()->route('user.force-change-password')
                     ->with('warning', 'Please change your default password to continue.');
