@@ -96,7 +96,7 @@ class StudentWithParentsImport implements ToCollection, WithHeadingRow, WithVali
                     'permanent_address'     => 'To be updated',
                     'student_type'          => $row['student_type'] ?? 'day',
                     'curriculum_type'       => $row['curriculum_type'] ?? 'zimsec',
-                    'scholarship_percentage' => $row['scholarship_percentage'] ?? 0,
+                    'scholarship_percentage' => !empty($row['scholarship_percentage']) ? $row['scholarship_percentage'] : 0,
                     'is_new_student'        => true,
                     'chair'                 => $row['chair'] ?? null,
                     'desk'                  => $row['desk'] ?? null,
