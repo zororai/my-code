@@ -52,7 +52,22 @@ class LibraryController extends Controller
 
         $records = $query->orderBy('created_at', 'desc')->paginate(20);
 
-        return view('backend.admin.library.index', compact('records'));
+        // Fetch overdue records (issued but past due date)
+        $overdueRecords = LibraryRecord::with(['student.user', 'student.class', 'teacher.user'])
+            ->where('status', 'issued')
+            ->whereNotNull('due_date')
+            ->where('due_date', '<', Carbon::today())
+            ->orderBy('due_date', 'asc')
+            ->get();
+
+        // Fetch unresolved lost book records
+        $lostRecords = LibraryRecord::with(['student.user', 'student.class', 'teacher.user'])
+            ->where('status', 'lost')
+            ->whereNull('resolved_at')
+            ->orderBy('return_date', 'desc')
+            ->get();
+
+        return view('backend.admin.library.index', compact('records', 'overdueRecords', 'lostRecords'));
     }
 
     /**
@@ -307,6 +322,110 @@ class LibraryController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Book returned successfully! Condition: ' . ucfirst($returnCondition));
+    }
+
+    /**
+     * Resolve a lost book — either by replacement (creates new book entry) or fee payment
+     */
+    public function resolveLost(Request $request, $id)
+    {
+        $record = LibraryRecord::findOrFail($id);
+
+        if ($record->status !== 'lost') {
+            return redirect()->back()->with('error', 'This record is not marked as lost.');
+        }
+
+        $addCopies = $request->has('replacement_add_copies');
+
+        $rules = [
+            'resolution_type'  => 'required|in:replace,pay_fee',
+            'fee_amount'       => 'required_if:resolution_type,pay_fee|nullable|numeric|min:0',
+            'resolution_notes' => 'nullable|string|max:500',
+        ];
+
+        if ($request->resolution_type === 'replace') {
+            $rules['replacement_title']       = 'required|string|max:255';
+            $rules['replacement_book_number'] = 'required|string|max:100|unique:books,book_number';
+            $rules['replacement_author']      = 'nullable|string|max:255';
+            $rules['replacement_isbn']        = 'nullable|string|max:50';
+            $rules['replacement_category']    = 'nullable|string|max:100';
+
+            if ($addCopies) {
+                $rules['replacement_copies']                    = 'required|array|min:1';
+                $rules['replacement_copies.*.condition']        = 'required|in:excellent,good,fair,poor,damaged';
+                $rules['replacement_copies.*.isbn']             = 'nullable|string|max:50';
+            } else {
+                $rules['replacement_quantity']  = 'required|integer|min:1';
+                $rules['replacement_condition'] = 'required|in:excellent,good,fair,poor,damaged';
+                $rules['replacement_condition_notes'] = 'nullable|string|max:500';
+            }
+        }
+
+        $request->validate($rules);
+
+        $message = '';
+
+        if ($request->resolution_type === 'replace') {
+            // Build the new book record from replacement fields
+            $bookData = [
+                'title'       => $request->replacement_title,
+                'book_number' => $request->replacement_book_number,
+                'author'      => $request->replacement_author,
+                'isbn'        => $request->replacement_isbn,
+                'category'    => $request->replacement_category,
+                'added_by'    => auth()->id(),
+                'status'      => 'available',
+            ];
+
+            if ($addCopies) {
+                $copies = $request->replacement_copies;
+                $bookData['quantity']           = count($copies);
+                $bookData['available_quantity'] = count($copies);
+                $bookData['condition']          = $copies[array_key_first($copies)]['condition'] ?? 'good';
+            } else {
+                $bookData['quantity']           = $request->replacement_quantity;
+                $bookData['available_quantity'] = $request->replacement_quantity;
+                $bookData['condition']          = $request->replacement_condition;
+                $bookData['condition_notes']    = $request->replacement_condition_notes;
+            }
+
+            $newBook = Book::create($bookData);
+
+            if ($addCopies) {
+                $copyNumber = 1;
+                foreach ($request->replacement_copies as $copyData) {
+                    $isbn = !empty($copyData['isbn'])
+                        ? $copyData['isbn']
+                        : $newBook->book_number . '-C' . str_pad($copyNumber, 3, '0', STR_PAD_LEFT);
+
+                    BookCopy::create([
+                        'book_id'         => $newBook->id,
+                        'isbn'            => $isbn,
+                        'copy_number'     => $newBook->book_number . '-' . $copyNumber,
+                        'condition'       => $copyData['condition'] ?? 'good',
+                        'condition_notes' => $copyData['condition_notes'] ?? null,
+                        'status'          => 'available',
+                        'added_by'        => auth()->id(),
+                    ]);
+                    $copyNumber++;
+                }
+                $message = 'Lost book resolved: replacement accepted and added to library with ' . count($request->replacement_copies) . ' copies.';
+            } else {
+                $message = 'Lost book resolved: replacement copy accepted and added to library.';
+            }
+        } else {
+            $message = 'Lost book resolved: fee of $' . number_format($request->fee_amount, 2) . ' paid.';
+        }
+
+        $record->update([
+            'resolution_type'  => $request->resolution_type,
+            'fee_amount'       => $request->resolution_type === 'pay_fee' ? $request->fee_amount : null,
+            'fee_paid'         => $request->resolution_type === 'pay_fee',
+            'resolved_at'      => Carbon::now(),
+            'resolution_notes' => $request->resolution_notes,
+        ]);
+
+        return redirect()->back()->with('success', $message);
     }
 
     /**

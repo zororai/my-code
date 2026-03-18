@@ -24,6 +24,11 @@ class LibraryRecord extends Model
         'return_date',
         'status',
         'notes',
+        'resolution_type',
+        'fee_amount',
+        'fee_paid',
+        'resolved_at',
+        'resolution_notes',
     ];
 
     protected $dates = [

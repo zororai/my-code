@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -r overdue /c/Users/Mazarura/Documents/GitHub/roshs/student_portal_roshs --include=*.blade.php --include=*.php)",
+      "Bash(php artisan:*)",
+      "Bash(where php:*)",
+      "Read(//c/xampp/php/**)",
+      "Read(//c/laragon/bin/**)",
+      "Bash(\"/c/Users/Mazarura/.config/herd/bin/php.bat\" artisan:*)"
+    ]
+  }
+}

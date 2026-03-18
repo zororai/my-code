@@ -750,6 +750,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/admin/library/student/{studentId}/history', 'LibraryController@studentHistory')->name('admin.library.student-history');
         Route::get('/admin/library/teacher/{teacherId}/history', 'LibraryController@teacherHistory')->name('admin.library.teacher-history');
         Route::patch('/admin/library/{id}/return', 'LibraryController@returnBook')->name('admin.library.return');
+        Route::patch('/admin/library/{id}/resolve-lost', 'LibraryController@resolveLost')->name('admin.library.resolve-lost');
         Route::delete('/admin/library/{id}', 'LibraryController@destroy')->name('admin.library.destroy');
         Route::get('/admin/library/books', 'LibraryController@books')->name('admin.library.books');
         Route::get('/admin/library/books/create', 'LibraryController@createBook')->name('admin.library.books.create');
