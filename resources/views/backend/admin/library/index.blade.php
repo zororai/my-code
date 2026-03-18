@@ -78,7 +78,10 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($records as $record)
-                    <tr class="hover:bg-gray-50">
+                    @php
+                        $isOverdue = $record->status === 'issued' && $record->due_date && \Carbon\Carbon::parse($record->due_date)->isPast();
+                    @endphp
+                    <tr class="hover:bg-gray-50 {{ $isOverdue ? 'bg-red-50' : '' }}">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -103,14 +106,16 @@
                             {{ $record->due_date ? \Carbon\Carbon::parse($record->due_date)->format('M d, Y') : '-' }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            @if($record->status == 'issued')
+                            @if($isOverdue)
+                                <span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">Overdue</span>
+                            @elseif($record->status == 'issued')
                                 <span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">Issued</span>
                             @elseif($record->status == 'returned')
                                 <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Returned</span>
                             @elseif($record->status == 'lost')
                                 <span class="px-2 py-1 text-xs font-medium bg-gray-800 text-white rounded-full">Lost</span>
                             @else
-                                <span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">Overdue</span>
+                                <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">{{ ucfirst($record->status) }}</span>
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
