@@ -147,7 +147,7 @@ class LibraryController extends Controller
             'book_number' => 'required|string|max:100',
             'copy_isbn' => 'nullable|string|max:50',
             'issue_date' => 'required|date',
-            'due_date' => 'nullable|date|after_or_equal:issue_date',
+            'due_date' => 'required|date|after_or_equal:issue_date',
             'notes' => 'nullable|string|max:500',
         ];
         
@@ -322,6 +322,42 @@ class LibraryController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Book returned successfully! Condition: ' . ucfirst($returnCondition));
+    }
+
+    /**
+     * Correct a record that was wrongly marked as lost — set it back to returned
+     */
+    public function correctToReturned($id)
+    {
+        $record = LibraryRecord::findOrFail($id);
+
+        // Restore book/copy inventory that was decremented when marked lost
+        if ($record->book_copy_id) {
+            $copy = BookCopy::find($record->book_copy_id);
+            if ($copy && $copy->status === 'lost') {
+                $copy->update(['status' => 'available']);
+                if ($copy->book) {
+                    $copy->book->increment('quantity');
+                    $copy->book->increment('available_quantity');
+                    $copy->book->update(['status' => 'available']);
+                }
+            }
+        } elseif ($record->book_id) {
+            $book = Book::find($record->book_id);
+            if ($book) {
+                $book->increment('quantity');
+                $book->increment('available_quantity');
+                $book->update(['status' => 'available']);
+            }
+        }
+
+        $record->update([
+            'status'      => 'returned',
+            'return_date' => $record->return_date ?? Carbon::now(),
+            'notes'       => trim(($record->notes ?? '') . "\nCorrected: was incorrectly marked as lost."),
+        ]);
+
+        return redirect()->back()->with('success', 'Record corrected — book marked as returned.');
     }
 
     /**

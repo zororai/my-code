@@ -279,7 +279,11 @@
                             @elseif($record->status == 'returned')
                                 <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Returned</span>
                             @elseif($record->status == 'lost')
-                                <span class="px-2 py-1 text-xs font-medium bg-gray-800 text-white rounded-full">Lost</span>
+                                @if($record->resolved_at)
+                                    <span class="px-2 py-1 text-xs font-medium bg-gray-200 text-gray-700 rounded-full">Lost · Resolved</span>
+                                @else
+                                    <span class="px-2 py-1 text-xs font-medium bg-gray-800 text-white rounded-full">Lost · Pending</span>
+                                @endif
                             @else
                                 <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">{{ ucfirst($record->status) }}</span>
                             @endif
@@ -299,14 +303,6 @@
                                     class="text-blue-600 hover:text-blue-800">
                                     History
                                 </a>
-                                <form action="{{ route('admin.library.destroy', $record->id) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-800" 
-                                        onclick="return confirm('Are you sure you want to delete this record?')">
-                                        Delete
-                                    </button>
-                                </form>
                             </div>
                         </td>
                     </tr>

@@ -297,9 +297,9 @@
                     </div>
                     <div class="space-y-2">
                         <label for="due_date" class="block text-sm font-medium text-gray-700">
-                            Due Date
+                            Due Date <span class="text-red-500">*</span>
                         </label>
-                        <input type="date" id="due_date" name="due_date" value="{{ old('due_date') }}"
+                        <input type="date" id="due_date" name="due_date" value="{{ old('due_date') }}" required
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                 </div>

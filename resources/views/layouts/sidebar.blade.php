@@ -671,11 +671,22 @@
                 </a>
                 @endcan
                 @can('sidebar-library-records')
+                @php
+                    $libraryOverdueCount = \App\LibraryRecord::where('status', 'issued')
+                        ->whereNotNull('due_date')
+                        ->where('due_date', '<', \Carbon\Carbon::today())
+                        ->count();
+                @endphp
                 <a href="{{ route('admin.library.index') }}" class="flex items-center px-3 py-2 text-sm text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                     </svg>
-                    Library Records
+                    <span class="flex-1">Library Records</span>
+                    @if($libraryOverdueCount > 0)
+                        <span class="ml-1 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-bold bg-red-500 text-white rounded-full">
+                            {{ $libraryOverdueCount > 99 ? '99+' : $libraryOverdueCount }}
+                        </span>
+                    @endif
                 </a>
                 @endcan
                 @role('Admin')

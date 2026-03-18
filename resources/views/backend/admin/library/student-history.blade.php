@@ -30,7 +30,7 @@
                 </p>
             </div>
             <div class="ml-auto">
-                <a href="{{ route('admin.library.create') }}?student_id={{ $student->id }}" 
+                <a href="{{ route('admin.library.create') }}?student_id={{ $student->id }}"
                     class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -41,15 +41,30 @@
         </div>
     </div>
 
+    @php
+        $allRecords   = $records->getCollection();
+        $overdueCount = $allRecords->filter(fn($r) => $r->status === 'issued' && $r->due_date && \Carbon\Carbon::parse($r->due_date)->isPast())->count();
+        $lostCount    = $allRecords->where('status', 'lost')->count();
+        $lostUnresolved = $allRecords->where('status', 'lost')->whereNull('resolved_at');
+    @endphp
+
     <!-- Stats -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
         <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
             <p class="text-sm text-yellow-600 font-medium">Currently Issued</p>
-            <p class="text-2xl font-bold text-yellow-800">{{ $records->where('status', 'issued')->count() }}</p>
+            <p class="text-2xl font-bold text-yellow-800">{{ $allRecords->where('status', 'issued')->count() }}</p>
         </div>
         <div class="bg-green-50 border border-green-200 rounded-xl p-4">
             <p class="text-sm text-green-600 font-medium">Returned</p>
-            <p class="text-2xl font-bold text-green-800">{{ $records->where('status', 'returned')->count() }}</p>
+            <p class="text-2xl font-bold text-green-800">{{ $allRecords->where('status', 'returned')->count() }}</p>
+        </div>
+        <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+            <p class="text-sm text-red-600 font-medium">Overdue</p>
+            <p class="text-2xl font-bold text-red-800">{{ $overdueCount }}</p>
+        </div>
+        <div class="bg-gray-100 border border-gray-300 rounded-xl p-4">
+            <p class="text-sm text-gray-600 font-medium">Lost</p>
+            <p class="text-2xl font-bold text-gray-800">{{ $lostCount }}</p>
         </div>
         <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
             <p class="text-sm text-blue-600 font-medium">Total Records</p>
@@ -60,6 +75,30 @@
     @if(session('success'))
     <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-6" role="alert">
         <span class="block sm:inline">{{ session('success') }}</span>
+    </div>
+    @endif
+
+    {{-- Overdue alert --}}
+    @if($overdueCount > 0)
+    <div class="bg-red-50 border border-red-400 text-red-800 px-4 py-3 rounded-lg mb-4 flex items-start gap-3" role="alert">
+        <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p class="text-sm font-medium">
+            This student has <strong>{{ $overdueCount }} overdue {{ Str::plural('book', $overdueCount) }}</strong> that must be returned.
+        </p>
+    </div>
+    @endif
+
+    {{-- Lost alert --}}
+    @if($lostUnresolved->count() > 0)
+    <div class="bg-gray-800 text-white px-4 py-3 rounded-lg mb-6 flex items-start gap-3" role="alert">
+        <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        </svg>
+        <p class="text-sm font-medium">
+            This student has <strong>{{ $lostUnresolved->count() }} unresolved lost {{ Str::plural('book', $lostUnresolved->count()) }}</strong> — pending replacement or fee payment.
+        </p>
     </div>
     @endif
 
@@ -80,7 +119,11 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($records as $record)
-                    <tr class="hover:bg-gray-50">
+                    @php
+                        $isOverdue = $record->status === 'issued' && $record->due_date && \Carbon\Carbon::parse($record->due_date)->isPast();
+                        $rowClass  = $isOverdue ? 'bg-red-50' : ($record->status === 'lost' ? 'bg-gray-50' : '');
+                    @endphp
+                    <tr class="hover:bg-gray-100 {{ $rowClass }}">
                         <td class="px-6 py-4">
                             <p class="text-sm font-medium text-gray-900">{{ $record->book_title }}</p>
                             <p class="text-xs text-gray-500">Book #: {{ $record->book_number }}</p>
@@ -88,19 +131,30 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                             {{ \Carbon\Carbon::parse($record->issue_date)->format('M d, Y') }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm {{ $isOverdue ? 'text-red-700 font-medium' : 'text-gray-700' }}">
                             {{ $record->due_date ? \Carbon\Carbon::parse($record->due_date)->format('M d, Y') : '-' }}
+                            @if($isOverdue)
+                                <span class="block text-xs text-red-500">{{ \Carbon\Carbon::parse($record->due_date)->diffInDays(now()) }}d overdue</span>
+                            @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                             {{ $record->return_date ? \Carbon\Carbon::parse($record->return_date)->format('M d, Y') : '-' }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            @if($record->status == 'issued')
-                                <span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">Issued</span>
-                            @elseif($record->status == 'returned')
-                                <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Returned</span>
-                            @else
+                            @if($isOverdue)
                                 <span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">Overdue</span>
+                            @elseif($record->status === 'issued')
+                                <span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">Issued</span>
+                            @elseif($record->status === 'returned')
+                                <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Returned</span>
+                            @elseif($record->status === 'lost')
+                                @if($record->resolved_at)
+                                    <span class="px-2 py-1 text-xs font-medium bg-gray-200 text-gray-700 rounded-full">Lost · Resolved</span>
+                                @else
+                                    <span class="px-2 py-1 text-xs font-medium bg-gray-800 text-white rounded-full">Lost · Pending</span>
+                                @endif
+                            @else
+                                <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">{{ ucfirst($record->status) }}</span>
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
@@ -108,20 +162,33 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
                             <div class="flex items-center justify-end space-x-2">
-                                @if($record->status == 'issued')
-                                <form action="{{ route('admin.library.return', $record->id) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit" class="text-green-600 hover:text-green-800 font-medium" 
-                                        onclick="return confirm('Mark this book as returned?')">
+                                @if($record->status === 'issued')
+                                    <button type="button"
+                                        onclick="openReturnModal({{ $record->id }}, '{{ addslashes($record->book_title) }}', '{{ $record->copy_isbn ?? $record->book_number }}')"
+                                        class="text-green-600 hover:text-green-800 font-medium">
                                         Return
                                     </button>
-                                </form>
+                                @endif
+                                @if($record->status === 'lost' && !$record->resolved_at)
+                                    <button type="button"
+                                        onclick="openResolveModal({{ $record->id }}, '{{ addslashes($record->book_title) }}', '{{ addslashes($student->user->name ?? '') }}')"
+                                        class="inline-flex items-center px-2 py-1 bg-gray-800 hover:bg-gray-900 text-white text-xs font-medium rounded transition-colors">
+                                        Resolve
+                                    </button>
+                                    <form action="{{ route('admin.library.correct-to-returned', $record->id) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit"
+                                            onclick="return confirm('Correct this record? The book will be marked as returned and inventory restored.')"
+                                            class="inline-flex items-center px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition-colors">
+                                            Correct
+                                        </button>
+                                    </form>
                                 @endif
                                 <form action="{{ route('admin.library.destroy', $record->id) }}" method="POST" class="inline">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-800" 
+                                    <button type="submit" class="text-red-600 hover:text-red-800"
                                         onclick="return confirm('Are you sure you want to delete this record?')">
                                         Delete
                                     </button>
@@ -151,4 +218,323 @@
         @endif
     </div>
 </div>
+
+<!-- ── Return Book Modal ── -->
+<div id="returnModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-xl bg-white">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Return Book</h3>
+            <button onclick="closeReturnModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+            <p class="text-sm text-gray-600">Book: <span id="modalBookTitle" class="font-medium text-gray-900"></span></p>
+            <p class="text-sm text-gray-600">ISBN/Number: <span id="modalBookIsbn" class="font-mono text-gray-900"></span></p>
+        </div>
+
+        <form id="returnForm" method="POST">
+            @csrf
+            @method('PATCH')
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Return Status *</label>
+                <div class="space-y-2">
+                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors return-type-option" data-value="returned">
+                        <input type="radio" name="return_type" value="returned" class="mr-3" checked>
+                        <div class="flex-1">
+                            <span class="font-medium text-green-700">Book Returned</span>
+                            <p class="text-xs text-gray-500">Book has been returned in acceptable condition</p>
+                        </div>
+                    </label>
+                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors return-type-option" data-value="lost">
+                        <input type="radio" name="return_type" value="lost" class="mr-3">
+                        <div class="flex-1">
+                            <span class="font-medium text-red-700">Book Lost</span>
+                            <p class="text-xs text-gray-500">Book has been lost or cannot be returned</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div id="conditionSection" class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Book Condition on Return *</label>
+                <select name="return_condition" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="excellent">Excellent - Like new</option>
+                    <option value="good" selected>Good - Minor wear</option>
+                    <option value="fair">Fair - Noticeable wear</option>
+                    <option value="poor">Poor - Significant damage</option>
+                    <option value="damaged">Damaged - Needs repair</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+                <textarea name="return_notes" rows="2" placeholder="Any notes about the book's condition..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-4 border-t">
+                <button type="button" onclick="closeReturnModal()"
+                    class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" id="submitReturnBtn"
+                    class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors">
+                    Confirm Return
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ── Resolve Lost Book Modal ── -->
+<div id="resolveModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-xl bg-white mb-10">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Resolve Lost Book</h3>
+            <button onclick="closeResolveModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+            <p class="text-sm text-gray-600">Lost Book: <span id="resolveBookTitle" class="font-medium text-gray-900"></span></p>
+            <p class="text-sm text-gray-600">Borrower: <span id="resolveBorrowerName" class="font-medium text-gray-900"></span></p>
+        </div>
+
+        <form id="resolveForm" method="POST">
+            @csrf
+            @method('PATCH')
+
+            <div class="mb-5">
+                <label class="block text-sm font-medium text-gray-700 mb-2">How was this resolved? *</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="flex items-start p-3 border-2 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors">
+                        <input type="radio" name="resolution_type" value="replace" class="mr-3 mt-0.5" id="res_replace" onchange="toggleResolutionSection()">
+                        <div>
+                            <span class="font-medium text-blue-700 block">Book Replaced</span>
+                            <p class="text-xs text-gray-500 mt-0.5">Borrower provided a replacement copy</p>
+                        </div>
+                    </label>
+                    <label class="flex items-start p-3 border-2 rounded-lg cursor-pointer hover:bg-green-50 transition-colors">
+                        <input type="radio" name="resolution_type" value="pay_fee" class="mr-3 mt-0.5" id="res_fee" onchange="toggleResolutionSection()">
+                        <div>
+                            <span class="font-medium text-green-700 block">Fee Paid</span>
+                            <p class="text-xs text-gray-500 mt-0.5">Borrower paid a monetary fee</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Replacement Book Details -->
+            <div id="replacementBookSection" class="hidden mb-5 border border-blue-200 rounded-lg p-4 bg-blue-50">
+                <h4 class="text-sm font-semibold text-blue-800 mb-3">Replacement Book Details</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Book Title *</label>
+                        <input type="text" name="replacement_title" id="replacement_title" placeholder="Enter book title"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Book Number *</label>
+                        <input type="text" name="replacement_book_number" id="replacement_book_number" placeholder="e.g., LIB-001"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Author</label>
+                        <input type="text" name="replacement_author" placeholder="Enter author name"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">ISBN</label>
+                        <input type="text" name="replacement_isbn" placeholder="Enter ISBN"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                        <input type="text" name="replacement_category" placeholder="e.g., Fiction, Science"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div class="mt-3 p-3 bg-white rounded-lg border border-blue-100">
+                    <label class="flex items-start gap-2 cursor-pointer">
+                        <input type="checkbox" name="replacement_add_copies" id="replacement_add_copies" class="mt-0.5" onchange="toggleReplacementCopies()">
+                        <div>
+                            <span class="text-xs font-medium text-gray-800 block">Add individual copies with unique ISBN numbers</span>
+                            <span class="text-xs text-gray-500">Check this to add multiple copies, each with a unique ISBN number for tracking</span>
+                        </div>
+                    </label>
+                </div>
+
+                <div id="replacementQuantitySection" class="grid grid-cols-2 gap-3 mt-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Quantity *</label>
+                        <input type="number" name="replacement_quantity" value="1" min="1"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Book Condition *</label>
+                        <select name="replacement_condition" id="replacement_condition_main"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                            <option value="excellent">Excellent</option>
+                            <option value="good" selected>Good</option>
+                            <option value="fair">Fair</option>
+                            <option value="poor">Poor</option>
+                            <option value="damaged">Damaged</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Condition Notes</label>
+                        <input type="text" name="replacement_condition_notes" placeholder="Optional notes about condition"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div id="replacementCopiesSection" class="hidden mt-3">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-medium text-gray-700">Copies</span>
+                        <button type="button" onclick="addReplacementCopy()" class="text-xs text-blue-600 hover:text-blue-800 font-medium">+ Add Copy</button>
+                    </div>
+                    <div id="replacementCopiesList" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <!-- Fee Section -->
+            <div id="feeAmountSection" class="mb-5 hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Fee Amount *</label>
+                <div class="relative">
+                    <span class="absolute left-3 top-2.5 text-gray-500 text-sm font-medium">$</span>
+                    <input type="number" name="fee_amount" id="feeAmountInput" min="0" step="0.01" placeholder="0.00"
+                        class="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                <textarea name="resolution_notes" rows="2" placeholder="Any additional details..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-4 border-t">
+                <button type="button" onclick="closeResolveModal()"
+                    class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg transition-colors">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded-lg transition-colors">
+                    Mark as Resolved
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// ── Return Modal ──
+function openReturnModal(recordId, bookTitle, bookIsbn) {
+    document.getElementById('returnModal').classList.remove('hidden');
+    document.getElementById('modalBookTitle').textContent = bookTitle;
+    document.getElementById('modalBookIsbn').textContent = bookIsbn;
+    document.getElementById('returnForm').action = '/admin/library/' + recordId + '/return';
+    document.querySelector('input[name="return_type"][value="returned"]').checked = true;
+    document.getElementById('conditionSection').classList.remove('hidden');
+    document.getElementById('submitReturnBtn').textContent = 'Confirm Return';
+    document.getElementById('submitReturnBtn').className = 'px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors';
+}
+function closeReturnModal() {
+    document.getElementById('returnModal').classList.add('hidden');
+}
+document.querySelectorAll('input[name="return_type"]').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+        const isLost = this.value === 'lost';
+        document.getElementById('conditionSection').classList.toggle('hidden', isLost);
+        const btn = document.getElementById('submitReturnBtn');
+        btn.textContent = isLost ? 'Mark as Lost' : 'Confirm Return';
+        btn.className = isLost
+            ? 'px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors'
+            : 'px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors';
+    });
+});
+document.getElementById('returnModal').addEventListener('click', function(e) {
+    if (e.target === this) closeReturnModal();
+});
+
+// ── Resolve Modal ──
+function openResolveModal(recordId, bookTitle, borrowerName) {
+    document.getElementById('resolveModal').classList.remove('hidden');
+    document.getElementById('resolveBookTitle').textContent = bookTitle;
+    document.getElementById('resolveBorrowerName').textContent = borrowerName;
+    document.getElementById('resolveForm').action = '/admin/library/' + recordId + '/resolve-lost';
+    document.querySelectorAll('input[name="resolution_type"]').forEach(r => r.checked = false);
+    document.getElementById('replacementBookSection').classList.add('hidden');
+    document.getElementById('feeAmountSection').classList.add('hidden');
+    document.getElementById('feeAmountInput').value = '';
+    document.getElementById('replacement_add_copies').checked = false;
+    document.getElementById('replacementCopiesSection').classList.add('hidden');
+    document.getElementById('replacementQuantitySection').classList.remove('hidden');
+    document.getElementById('replacementCopiesList').innerHTML = '';
+}
+function closeResolveModal() {
+    document.getElementById('resolveModal').classList.add('hidden');
+}
+function toggleResolutionSection() {
+    const isReplace = document.getElementById('res_replace').checked;
+    const isFee     = document.getElementById('res_fee').checked;
+    document.getElementById('replacementBookSection').classList.toggle('hidden', !isReplace);
+    document.getElementById('feeAmountSection').classList.toggle('hidden', !isFee);
+    document.getElementById('replacement_title').required       = isReplace;
+    document.getElementById('replacement_book_number').required = isReplace;
+    document.getElementById('replacement_condition_main').required = isReplace;
+    document.getElementById('feeAmountInput').required          = isFee;
+}
+function toggleReplacementCopies() {
+    const useCopies = document.getElementById('replacement_add_copies').checked;
+    document.getElementById('replacementQuantitySection').classList.toggle('hidden', useCopies);
+    document.getElementById('replacementCopiesSection').classList.toggle('hidden', !useCopies);
+    if (useCopies && document.getElementById('replacementCopiesList').children.length === 0) {
+        addReplacementCopy();
+    }
+}
+let replacementCopyIndex = 0;
+function addReplacementCopy() {
+    const i = replacementCopyIndex++;
+    const div = document.createElement('div');
+    div.className = 'grid grid-cols-3 gap-2 items-end border border-gray-200 rounded-lg p-2 bg-white';
+    div.innerHTML = `
+        <div>
+            <label class="block text-xs text-gray-600 mb-1">ISBN (optional)</label>
+            <input type="text" name="replacement_copies[${i}][isbn]" placeholder="Auto-generated if blank"
+                class="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500">
+        </div>
+        <div>
+            <label class="block text-xs text-gray-600 mb-1">Condition *</label>
+            <select name="replacement_copies[${i}][condition]"
+                class="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500">
+                <option value="excellent">Excellent</option>
+                <option value="good" selected>Good</option>
+                <option value="fair">Fair</option>
+                <option value="poor">Poor</option>
+                <option value="damaged">Damaged</option>
+            </select>
+        </div>
+        <div class="flex items-end">
+            <button type="button" onclick="this.closest('div.grid').remove()"
+                class="w-full px-2 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs rounded transition-colors">
+                Remove
+            </button>
+        </div>
+    `;
+    document.getElementById('replacementCopiesList').appendChild(div);
+}
+document.getElementById('resolveModal').addEventListener('click', function(e) {
+    if (e.target === this) closeResolveModal();
+});
+</script>
 @endsection
