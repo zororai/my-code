@@ -38,8 +38,10 @@ class StudentAnalyticsController extends Controller
                 ];
             });
 
-        // Get current term
-        $currentTerm = ResultsStatus::latest()->first();
+        // Get current term (most recent by academic year and period)
+        $currentTerm = ResultsStatus::orderBy('year', 'desc')
+            ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
+            ->first();
         $currentYear = $currentTerm ? $currentTerm->year : date('Y');
         $currentPeriod = $currentTerm ? $currentTerm->result_period : 'first';
 
@@ -289,8 +291,10 @@ class StudentAnalyticsController extends Controller
         // Get parent's children
         $children = $parent->students()->with(['user', 'class'])->get();
 
-        // Get current term
-        $currentTerm = ResultsStatus::latest()->first();
+        // Get current term (most recent by academic year and period)
+        $currentTerm = ResultsStatus::orderBy('year', 'desc')
+            ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
+            ->first();
         $currentYear = $currentTerm ? $currentTerm->year : date('Y');
         $currentPeriod = $currentTerm ? $currentTerm->result_period : 'first';
 
@@ -350,8 +354,10 @@ class StudentAnalyticsController extends Controller
           ->orderBy('class_numeric')
           ->get();
 
-        // Get current term
-        $currentTerm = ResultsStatus::latest()->first();
+        // Get current term (most recent by academic year and period)
+        $currentTerm = ResultsStatus::orderBy('year', 'desc')
+            ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
+            ->first();
         $currentYear = $currentTerm ? $currentTerm->year : date('Y');
         $currentPeriod = $currentTerm ? $currentTerm->result_period : 'first';
 

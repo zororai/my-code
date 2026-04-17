@@ -63,8 +63,10 @@ class HomeController extends Controller
                     ];
                 });
             
-            // Get current term
-            $currentTerm = ResultsStatus::latest()->first();
+            // Get current term (most recent by academic year and period)
+            $currentTerm = ResultsStatus::orderBy('year', 'desc')
+                ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
+                ->first();
             $currentYear = $currentTerm ? $currentTerm->year : date('Y');
             $currentPeriod = $currentTerm ? $currentTerm->result_period : 'first';
 
@@ -729,8 +731,10 @@ class HomeController extends Controller
             $subjects = Subject::latest()->get();
             $classes = Grade::latest()->get();
 
-            // Get current term
-            $currentTerm = ResultsStatus::latest()->first();
+            // Get current term (most recent by academic year and period)
+            $currentTerm = ResultsStatus::orderBy('year', 'desc')
+                ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
+                ->first();
             $currentYear = $currentTerm ? $currentTerm->year : date('Y');
             $currentPeriod = $currentTerm ? $currentTerm->result_period : 'first';
 
@@ -1229,7 +1233,9 @@ class HomeController extends Controller
         $class = Grade::with('subjects.teacher.user')->findOrFail($id);
         $classSubjects = $class->subjects()->with('teacher.user')->orderBy('name')->get();
         
-        $currentTerm = ResultsStatus::latest()->first();
+        $currentTerm = ResultsStatus::orderBy('year', 'desc')
+            ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
+            ->first();
         $currentYear = $currentTerm ? $currentTerm->year : date('Y');
         $currentPeriod = $currentTerm ? $currentTerm->result_period : 'first';
         
