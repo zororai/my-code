@@ -161,8 +161,10 @@ class ResultController extends Controller
         // Get student IDs from this class
         $studentIds =$classes->students->pluck('id');
 
-        // Get the last inserted ResultsStatus record
-        $lastRecord = ResultsStatus::latest()->first();
+        // Get the most recent ResultsStatus record by academic year and period
+        $lastRecord = ResultsStatus::orderBy('year', 'desc')
+            ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
+            ->first();
 
         // Initialize results query
         $resultsQuery = Result::whereIn('student_id', $studentIds);
@@ -197,8 +199,10 @@ class ResultController extends Controller
         // Get student IDs from this class
         $studentIds =$classes->students->pluck('id');
 
-        // Get the last inserted ResultsStatus record
-        $lastRecord = ResultsStatus::latest()->first();
+        // Get the most recent ResultsStatus record by academic year and period
+        $lastRecord = ResultsStatus::orderBy('year', 'desc')
+            ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
+            ->first();
 
         // Retrieve results for the specified students and check if they match the last record
         $resultsQuery = Result::whereIn('student_id', $studentIds);
@@ -301,8 +305,10 @@ class ResultController extends Controller
         // Get student IDs from this class
         $studentIds =$classes->students->pluck('id');
 
-        // Get the last inserted ResultsStatus record
-        $lastRecord = ResultsStatus::latest()->first();
+        // Get the most recent ResultsStatus record by academic year and period
+        $lastRecord = ResultsStatus::orderBy('year', 'desc')
+            ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
+            ->first();
 
         // Retrieve results for the specified students and check if they match the last record
         $resultsQuery = Result::whereIn('student_id',$studentIds);
@@ -339,8 +345,10 @@ class ResultController extends Controller
             return in_array($subject->id, $teacherSubjectIds);
         });
 
-        // Get the current period
-        $lastRecord = ResultsStatus::latest()->first();
+        // Get the current period (most recent by academic year and period)
+        $lastRecord = ResultsStatus::orderBy('year', 'desc')
+            ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
+            ->first();
 
         // Fetch existing results for this student in the current period
         $existingResults = collect();
@@ -545,7 +553,9 @@ public function adminshowResult(Request $request)
             ]);
         }
 
-        $lastRecord = ResultsStatus::latest()->first();
+        $lastRecord = ResultsStatus::orderBy('year', 'desc')
+            ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
+            ->first();
         $year = $lastRecord->year;
         $period = $lastRecord->result_period;
         
