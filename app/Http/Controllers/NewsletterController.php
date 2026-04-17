@@ -62,6 +62,10 @@ class NewsletterController extends Controller
             'image_path' => $imagePath,
         ]);
 
+        if ($request->input('action') === 'post_next') {
+            return redirect()->route('newsletters.create')->with('success', 'Newsletter posted! Create your next one.');
+        }
+
         return redirect()->route('newsletters.index')->with('success', 'Newsletter created successfully.');
     }
 
