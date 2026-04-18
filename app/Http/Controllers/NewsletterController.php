@@ -23,7 +23,7 @@ class NewsletterController extends Controller
     }
     public function show($id) {
         $newsletter = Newsletter::findOrFail($id);
-        return view('website.Show', compact('newsletter'));
+        return view('website.show', compact('newsletter'));
     }
     public function show1($id) {
         $newsletter = Newsletter::findOrFail($id);
