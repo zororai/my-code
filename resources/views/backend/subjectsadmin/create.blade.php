@@ -196,7 +196,8 @@ function calculateTotal(id) {
     const single = parseInt(document.getElementById(`single_${id}`).value) || 0;
     const double = parseInt(document.getElementById(`double_${id}`).value) || 0;
     const triple = parseInt(document.getElementById(`triple_${id}`).value) || 0;
-    const total = (single * 1) + (double * 2) + (triple * 3);
+    const quad = parseInt(document.getElementById(`quad_${id}`)?.value) || 0;
+    const total = (single * 1) + (double * 2) + (triple * 3) + (quad * 4);
     document.getElementById(`total_${id}`).textContent = total;
 }
 
