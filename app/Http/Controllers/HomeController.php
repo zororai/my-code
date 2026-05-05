@@ -36,7 +36,7 @@ class HomeController extends Controller
      *
      * @return \Illuminate\Contracts\Support\Renderable
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
 
@@ -48,7 +48,7 @@ class HomeController extends Controller
             $subjects = Subject::latest()->get();
             $classes = Grade::latest()->get();
 
-            // Get available terms for filtering
+            // Get available terms for the switcher
             $availableTerms = ResultsStatus::select('id', 'year', 'result_period')
                 ->orderBy('year', 'desc')
                 ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
@@ -56,18 +56,28 @@ class HomeController extends Controller
                 ->map(function($term) {
                     $periodLabels = ['first' => 'Term 1', 'second' => 'Term 2', 'third' => 'Term 3'];
                     return [
-                        'id' => $term->id,
-                        'year' => $term->year,
+                        'id'     => $term->id,
+                        'year'   => $term->year,
                         'period' => $term->result_period,
-                        'label' => ($periodLabels[$term->result_period] ?? ucfirst($term->result_period)) . ' ' . $term->year
+                        'label'  => ($periodLabels[$term->result_period] ?? ucfirst($term->result_period)) . ' ' . $term->year,
                     ];
                 });
-            
-            // Get current term (most recent by academic year and period)
-            $currentTerm = ResultsStatus::orderBy('year', 'desc')
+
+            // Determine current term — request params override automatic detection
+            $latestTerm = ResultsStatus::orderBy('year', 'desc')
                 ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
                 ->first();
-            $currentYear = $currentTerm ? $currentTerm->year : date('Y');
+
+            if ($request->filled('year') && $request->filled('period')) {
+                $selectedTerm = ResultsStatus::where('year', $request->year)
+                    ->where('result_period', $request->period)
+                    ->first();
+                $currentTerm   = $selectedTerm ?? $latestTerm;
+            } else {
+                $currentTerm = $latestTerm;
+            }
+
+            $currentYear   = $currentTerm ? $currentTerm->year        : date('Y');
             $currentPeriod = $currentTerm ? $currentTerm->result_period : 'first';
 
             // Get pass/fail results by gender for current term (pass = marks >= 50)
@@ -127,14 +137,8 @@ class HomeController extends Controller
 
             foreach ($assessmentTypes as $type) {
                 $assessments = Assessment::where('assessment_type', $type)
-                    ->where(function($q) use ($currentYear) {
-                        $q->where('academic_year', $currentYear)
-                          ->orWhereNull('academic_year');
-                    })
-                    ->where(function($q) use ($currentPeriod) {
-                        $q->where('term', $currentPeriod)
-                          ->orWhereNull('term');
-                    })
+                    ->where('academic_year', $currentYear)
+                    ->where('term', $currentPeriod)
                     ->get();
                 $totalGiven = $assessments->count();
 
@@ -166,14 +170,8 @@ class HomeController extends Controller
             $assessmentStatsByGender = [];
             foreach ($assessmentTypes as $type) {
                 $assessments = Assessment::where('assessment_type', $type)
-                    ->where(function($q) use ($currentYear) {
-                        $q->where('academic_year', $currentYear)
-                          ->orWhereNull('academic_year');
-                    })
-                    ->where(function($q) use ($currentPeriod) {
-                        $q->where('term', $currentPeriod)
-                          ->orWhereNull('term');
-                    })
+                    ->where('academic_year', $currentYear)
+                    ->where('term', $currentPeriod)
                     ->pluck('id');
                 
                 // Get marks with student gender information
@@ -229,14 +227,8 @@ class HomeController extends Controller
 
                 // Get all assessments for this subject (filtered by current term)
                 $subjectAssessments = Assessment::where('subject_id', $subject->id)
-                    ->where(function($q) use ($currentYear) {
-                        $q->where('academic_year', $currentYear)
-                          ->orWhereNull('academic_year');
-                    })
-                    ->where(function($q) use ($currentPeriod) {
-                        $q->where('term', $currentPeriod)
-                          ->orWhereNull('term');
-                    })
+                    ->where('academic_year', $currentYear)
+                    ->where('term', $currentPeriod)
                     ->get();
 
                 // Get unique class IDs for this subject
@@ -269,14 +261,8 @@ class HomeController extends Controller
                 foreach ($assessmentTypes as $type) {
                     $typeAssessments = Assessment::where('subject_id', $subject->id)
                         ->where('assessment_type', $type)
-                        ->where(function($q) use ($currentYear) {
-                            $q->where('academic_year', $currentYear)
-                              ->orWhereNull('academic_year');
-                        })
-                        ->where(function($q) use ($currentPeriod) {
-                            $q->where('term', $currentPeriod)
-                              ->orWhereNull('term');
-                        })
+                        ->where('academic_year', $currentYear)
+                        ->where('term', $currentPeriod)
                         ->get();
 
                     $typeTotalMarks = 0;
@@ -731,16 +717,43 @@ class HomeController extends Controller
             $subjects = Subject::latest()->get();
             $classes = Grade::latest()->get();
 
-            // Get current term (most recent by academic year and period)
-            $currentTerm = ResultsStatus::orderBy('year', 'desc')
+            // Available terms for switcher
+            $availableTerms = ResultsStatus::select('id', 'year', 'result_period')
+                ->orderBy('year', 'desc')
+                ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
+                ->get()
+                ->map(function($term) {
+                    $periodLabels = ['first' => 'Term 1', 'second' => 'Term 2', 'third' => 'Term 3'];
+                    return [
+                        'id'     => $term->id,
+                        'year'   => $term->year,
+                        'period' => $term->result_period,
+                        'label'  => ($periodLabels[$term->result_period] ?? ucfirst($term->result_period)) . ' ' . $term->year,
+                    ];
+                });
+
+            // Determine current term — request params override automatic detection
+            $latestTerm = ResultsStatus::orderBy('year', 'desc')
                 ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
                 ->first();
-            $currentYear = $currentTerm ? $currentTerm->year : date('Y');
+
+            if ($request->filled('year') && $request->filled('period')) {
+                $selectedTerm = ResultsStatus::where('year', $request->year)
+                    ->where('result_period', $request->period)
+                    ->first();
+                $currentTerm   = $selectedTerm ?? $latestTerm;
+            } else {
+                $currentTerm = $latestTerm;
+            }
+
+            $currentYear   = $currentTerm ? $currentTerm->year        : date('Y');
             $currentPeriod = $currentTerm ? $currentTerm->result_period : 'first';
 
-            // Get pass/fail results by gender
+            // Get pass/fail results by gender — filtered to current term
             $resultsByGender = DB::table('results')
                 ->join('students', 'results.student_id', '=', 'students.id')
+                ->where('results.year', $currentYear)
+                ->where('results.result_period', $currentPeriod)
                 ->select(
                     'students.gender',
                     DB::raw('SUM(CASE WHEN results.marks >= 50 THEN 1 ELSE 0 END) as pass_count'),
@@ -792,7 +805,10 @@ class HomeController extends Controller
             $assessmentStats = [];
 
             foreach ($assessmentTypes as $type) {
-                $assessments = Assessment::where('assessment_type', $type)->get();
+                $assessments = Assessment::where('assessment_type', $type)
+                    ->where('academic_year', $currentYear)
+                    ->where('term', $currentPeriod)
+                    ->get();
                 $totalGiven = $assessments->count();
 
                 $totalMarks = 0;
@@ -828,7 +844,10 @@ class HomeController extends Controller
                 $subjectObtainedMarks = 0;
                 $subjectAssessmentCount = 0;
 
-                $subjectAssessments = Assessment::where('subject_id', $subject->id)->get();
+                $subjectAssessments = Assessment::where('subject_id', $subject->id)
+                    ->where('academic_year', $currentYear)
+                    ->where('term', $currentPeriod)
+                    ->get();
                 $subjectClassIds = $subjectAssessments->pluck('class_id')->unique()->filter()->toArray();
 
                 foreach ($subjectAssessments as $assessment) {
@@ -857,6 +876,8 @@ class HomeController extends Controller
                 foreach ($assessmentTypes as $type) {
                     $typeAssessments = Assessment::where('subject_id', $subject->id)
                         ->where('assessment_type', $type)
+                        ->where('academic_year', $currentYear)
+                        ->where('term', $currentPeriod)
                         ->get();
 
                     $typeTotalMarks = 0;
@@ -890,7 +911,7 @@ class HomeController extends Controller
                 ];
             }
 
-            return view('home', compact('parents','teachers','students','subjects','classes','genderStats','classroomPopulation','assessmentStats','subjectPerformanceData','subjectAssessmentMatrix','assessmentTypes','currentYear','currentPeriod'));
+            return view('home', compact('parents','teachers','students','subjects','classes','genderStats','classroomPopulation','assessmentStats','subjectPerformanceData','subjectAssessmentMatrix','assessmentTypes','currentYear','currentPeriod','currentTerm','availableTerms'));
         }
 
     }
@@ -1061,17 +1082,11 @@ class HomeController extends Controller
             }
 
             if ($year && $year !== 'all') {
-                $query->where(function($q) use ($year) {
-                    $q->where('academic_year', $year)
-                      ->orWhereNull('academic_year');
-                });
+                $query->where('academic_year', $year);
             }
 
             if ($term && $term !== 'all') {
-                $query->where(function($q) use ($term) {
-                    $q->where('term', $term)
-                      ->orWhereNull('term');
-                });
+                $query->where('term', $term);
             }
 
             $assessments = $query->get();
@@ -1130,17 +1145,11 @@ class HomeController extends Controller
             }
 
             if ($year && $year !== 'all') {
-                $query->where(function($q) use ($year) {
-                    $q->where('academic_year', $year)
-                      ->orWhereNull('academic_year');
-                });
+                $query->where('academic_year', $year);
             }
 
             if ($term && $term !== 'all') {
-                $query->where(function($q) use ($term) {
-                    $q->where('term', $term)
-                      ->orWhereNull('term');
-                });
+                $query->where('term', $term);
             }
 
             $assessmentIds = $query->pluck('id');
@@ -1248,14 +1257,8 @@ class HomeController extends Controller
         foreach ($classSubjects as $subject) {
             $subjectAssessments = Assessment::where('subject_id', $subject->id)
                 ->where('class_id', $class->id)
-                ->where(function($q) use ($currentYear) {
-                    $q->where('academic_year', $currentYear)
-                      ->orWhereNull('academic_year');
-                })
-                ->where(function($q) use ($currentPeriod) {
-                    $q->where('term', $currentPeriod)
-                      ->orWhereNull('term');
-                })
+                ->where('academic_year', $currentYear)
+                ->where('term', $currentPeriod)
                 ->get();
             
             $hasAssessments = $subjectAssessments->count() > 0;
@@ -1283,14 +1286,8 @@ class HomeController extends Controller
                 $typeAssessments = Assessment::where('subject_id', $subject->id)
                     ->where('class_id', $class->id)
                     ->where('assessment_type', $type)
-                    ->where(function($q) use ($currentYear) {
-                        $q->where('academic_year', $currentYear)
-                          ->orWhereNull('academic_year');
-                    })
-                    ->where(function($q) use ($currentPeriod) {
-                        $q->where('term', $currentPeriod)
-                          ->orWhereNull('term');
-                    })
+                    ->where('academic_year', $currentYear)
+                    ->where('term', $currentPeriod)
                     ->get();
                 
                 $typeTotalMarks = 0;
