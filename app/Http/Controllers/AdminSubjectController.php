@@ -24,10 +24,14 @@ class AdminSubjectController extends Controller
         $classes = Grade::with(['subjects' => function($query) {
             $query->with('teacher')->withCount('readings');
         }])->orderBy('class_name')->get();
-        
+
         $totalSubjects = Subject::count();
-        
-        return view('backend.subjectsadmin.index', compact('classes', 'totalSubjects'));
+
+        $allSubjects = Subject::with('grades')
+            ->orderBy('name')
+            ->get();
+
+        return view('backend.subjectsadmin.index', compact('classes', 'totalSubjects', 'allSubjects'));
     }
     
     public function showByClass($classId)
@@ -202,6 +206,35 @@ class AdminSubjectController extends Controller
 
         $count = count($request->subject_ids);
         return redirect()->route('admin.subjects.assign')->with('success', $count . ' teacher assignment(s) removed successfully.');
+    }
+
+    /**
+     * Update only the weekly lesson configuration for a subject.
+     */
+    public function updateLessonConfig(Request $request, Subject $subject)
+    {
+        $request->validate([
+            'single_lessons_per_week' => 'nullable|integer|min:0|max:20',
+            'double_lessons_per_week' => 'nullable|integer|min:0|max:10',
+            'triple_lessons_per_week' => 'nullable|integer|min:0|max:5',
+            'quad_lessons_per_week'   => 'nullable|integer|min:0|max:5',
+        ]);
+
+        $single = intval($request->single_lessons_per_week);
+        $double = intval($request->double_lessons_per_week);
+        $triple = intval($request->triple_lessons_per_week);
+        $quad   = intval($request->quad_lessons_per_week);
+
+        $subject->update([
+            'single_lessons_per_week' => $single,
+            'double_lessons_per_week' => $double,
+            'triple_lessons_per_week' => $triple,
+            'quad_lessons_per_week'   => $quad,
+            'periods_per_week'        => ($single * 1) + ($double * 2) + ($triple * 3) + ($quad * 4),
+        ]);
+
+        return redirect()->route('admin.subjects.index', ['#lesson-config'])
+            ->with('success', '"' . $subject->name . '" lesson configuration updated successfully.');
     }
 
     /**

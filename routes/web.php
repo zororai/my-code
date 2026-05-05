@@ -144,6 +144,7 @@ Route::group(['middleware' => ['auth','role_or_permission:Admin|sidebar-finance|
     Route::get('admin/subjects/{subject}/edit', 'AdminSubjectController@edit')->name('admin.subjects.edit');
     Route::put('admin/subjects/{subject}', 'AdminSubjectController@update')->name('admin.subjects.update');
     Route::delete('admin/subjects/{subject}', 'AdminSubjectController@destroy')->name('admin.subjects.destroy');
+    Route::put('admin/subjects/{subject}/lesson-config', 'AdminSubjectController@updateLessonConfig')->name('admin.subjects.lesson-config');
     
     // Admin Syllabus Topics Management Routes
     Route::get('admin/syllabus', 'AdminSyllabusController@index')->name('admin.syllabus.index');
