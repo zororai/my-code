@@ -68,11 +68,8 @@ class HomeController extends Controller
                 ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
                 ->first();
 
-            if ($request->filled('year') && $request->filled('period')) {
-                $selectedTerm = ResultsStatus::where('year', $request->year)
-                    ->where('result_period', $request->period)
-                    ->first();
-                $currentTerm   = $selectedTerm ?? $latestTerm;
+            if ($request->filled('term_id')) {
+                $currentTerm = ResultsStatus::find($request->term_id) ?? $latestTerm;
             } else {
                 $currentTerm = $latestTerm;
             }
@@ -327,7 +324,7 @@ class HomeController extends Controller
                 ];
             }
 
-            return view('home', compact('parents','teachers','students','subjects','classes','genderStats','classroomPopulation','assessmentStats','assessmentStatsByGender','subjectPerformanceData','subjectAssessmentMatrix','subjectsByClass','assessmentTypes','availableTerms','currentYear','currentPeriod'));
+            return view('home', compact('parents','teachers','students','subjects','classes','genderStats','classroomPopulation','assessmentStats','assessmentStatsByGender','subjectPerformanceData','subjectAssessmentMatrix','subjectsByClass','assessmentTypes','availableTerms','currentTerm','currentYear','currentPeriod'));
 
         } elseif ($user->hasRole('Teacher')) {
 
@@ -737,11 +734,8 @@ class HomeController extends Controller
                 ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
                 ->first();
 
-            if ($request->filled('year') && $request->filled('period')) {
-                $selectedTerm = ResultsStatus::where('year', $request->year)
-                    ->where('result_period', $request->period)
-                    ->first();
-                $currentTerm   = $selectedTerm ?? $latestTerm;
+            if ($request->filled('term_id')) {
+                $currentTerm = ResultsStatus::find($request->term_id) ?? $latestTerm;
             } else {
                 $currentTerm = $latestTerm;
             }
