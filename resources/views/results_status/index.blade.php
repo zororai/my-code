@@ -436,19 +436,35 @@
                 </div>
                 <div class="mt-4 text-center">
                     <h3 class="text-lg font-semibold text-gray-900">Copy Fee Breakdown</h3>
-                    <div class="mt-2 px-4 py-3">
-                        <p class="text-sm text-gray-500">
+                    <div class="mt-2 px-4 py-3 text-left">
+                        <p class="text-sm text-gray-500 mb-4 text-center">
                             Copy all fees from <span id="copySourceName" class="font-bold text-gray-900"></span> to:
                         </p>
-                        <select id="copyTargetSelect" class="mt-3 w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="">— Select target term —</option>
-                            @foreach($resultsStatuses as $term)
-                                <option value="{{ $term->id }}" data-source-id="{{ $term->id }}">
-                                    {{ $term->year }} {{ ucfirst($term->result_period) }} Term
-                                </option>
-                            @endforeach
-                        </select>
-                        <p class="text-xs text-amber-600 mt-2">This will replace any existing fee structures on the target term.</p>
+                        <div class="mb-3">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Year</label>
+                            <select id="copyYearSelect" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Select year</option>
+                                <option value="2025">2025</option>
+                                <option value="2026">2026</option>
+                                <option value="2027">2027</option>
+                                <option value="2028">2028</option>
+                                <option value="2029">2029</option>
+                                <option value="2030">2030</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Select Term</label>
+                            <select id="copyTermSelect" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Select a Term</option>
+                                <option value="first">First Term</option>
+                                <option value="second">Second Term</option>
+                                <option value="third">Third Term</option>
+                            </select>
+                        </div>
+                        <div id="copyTermNotFound" class="hidden text-xs text-red-600 bg-red-50 border border-red-200 rounded p-2 mb-2">
+                            That term does not exist yet. Please create it first before copying fees to it.
+                        </div>
+                        <p class="text-xs text-amber-600">This will replace any existing fee structures on the target term.</p>
                     </div>
                     <div class="flex gap-3 mt-4 px-4">
                         <button onclick="closeCopyFeesModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 text-sm font-medium rounded-md hover:bg-gray-300 focus:outline-none">
@@ -536,31 +552,56 @@
             });
         }
 
+        // Map of "year_period" => term id for lookup
+        const termLookup = {
+            @foreach($resultsStatuses as $term)
+            '{{ $term->year }}_{{ $term->result_period }}': {{ $term->id }},
+            @endforeach
+        };
+
         let copySourceId = null;
+        let copySourceKey = null;
 
         function openCopyFeesModal(sourceId, sourceName) {
             copySourceId = sourceId;
+            // Store the source key so we can exclude it
+            const sourceEntry = Object.entries(termLookup).find(([k, v]) => v === sourceId);
+            copySourceKey = sourceEntry ? sourceEntry[0] : null;
             document.getElementById('copySourceName').textContent = sourceName;
-            // Hide the source term from the target dropdown
-            const select = document.getElementById('copyTargetSelect');
-            Array.from(select.options).forEach(function(opt) {
-                opt.hidden = opt.dataset.sourceId == sourceId;
-            });
-            select.value = '';
+            document.getElementById('copyYearSelect').value = '';
+            document.getElementById('copyTermSelect').value = '';
+            document.getElementById('copyTermNotFound').classList.add('hidden');
             document.getElementById('copyFeesModal').classList.remove('hidden');
         }
 
         function closeCopyFeesModal() {
             document.getElementById('copyFeesModal').classList.add('hidden');
             copySourceId = null;
+            copySourceKey = null;
         }
 
         function confirmCopyFees() {
-            const targetId = document.getElementById('copyTargetSelect').value;
-            if (!targetId) {
-                alert('Please select a target term.');
+            const year = document.getElementById('copyYearSelect').value;
+            const period = document.getElementById('copyTermSelect').value;
+            document.getElementById('copyTermNotFound').classList.add('hidden');
+
+            if (!year || !period) {
+                alert('Please select both a year and a term.');
                 return;
             }
+
+            const key = year + '_' + period;
+            if (key === copySourceKey) {
+                alert('The target term is the same as the source. Please select a different term.');
+                return;
+            }
+
+            const targetId = termLookup[key];
+            if (!targetId) {
+                document.getElementById('copyTermNotFound').classList.remove('hidden');
+                return;
+            }
+
             const form = document.getElementById('copy-fees-form');
             form.action = '/Term/' + copySourceId + '/copy-fees';
             document.getElementById('copyTargetInput').value = targetId;
