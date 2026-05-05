@@ -14,38 +14,20 @@
                 {{-- Term switcher — only shown for roles that have dashboard term data --}}
                 @if(isset($availableTerms) && $availableTerms->count() > 0)
                 @php
-                    $periodLabels   = ['first' => 'Term 1', 'second' => 'Term 2', 'third' => 'Term 3'];
                     $selectedTermId = isset($currentTerm) ? $currentTerm->id : null;
-                    $isManualSelect = request()->filled('term_id');
                 @endphp
                 <form method="GET" action="{{ route('home') }}" class="flex items-center gap-2">
-                    {{-- Badge: only visible when the user has explicitly picked a term --}}
-                    @if($isManualSelect)
-                    <span class="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200 whitespace-nowrap">
-                        <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                        Viewing selected term
-                    </span>
-                    @endif
-
+                    <svg class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
                     <select name="term_id" onchange="this.form.submit()"
-                        class="border border-gray-300 rounded-lg text-sm px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white text-gray-700">
-                        <option value="">— Current term —</option>
+                        class="border border-gray-300 rounded-lg text-sm px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white text-gray-700 font-medium">
                         @foreach($availableTerms as $t)
-                            <option value="{{ $t['id'] }}" {{ $t['id'] == $selectedTermId && $isManualSelect ? 'selected' : '' }}>
+                            <option value="{{ $t['id'] }}" {{ $t['id'] == $selectedTermId ? 'selected' : '' }}>
                                 {{ $t['label'] }}
                             </option>
                         @endforeach
                     </select>
-
-                    {{-- Reset to latest term --}}
-                    @if($isManualSelect)
-                    <a href="{{ route('home') }}"
-                        class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-300 transition-colors whitespace-nowrap">
-                        Reset
-                    </a>
-                    @endif
                 </form>
                 @endif
 

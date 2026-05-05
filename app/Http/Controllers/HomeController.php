@@ -51,7 +51,7 @@ class HomeController extends Controller
             // Get available terms for the switcher
             $availableTerms = ResultsStatus::select('id', 'year', 'result_period')
                 ->orderBy('year', 'desc')
-                ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
+                ->orderByRaw("CASE result_period WHEN 'third' THEN 3 WHEN 'second' THEN 2 WHEN 'first' THEN 1 ELSE 0 END DESC")
                 ->get()
                 ->map(function($term) {
                     $periodLabels = ['first' => 'Term 1', 'second' => 'Term 2', 'third' => 'Term 3'];
@@ -65,7 +65,7 @@ class HomeController extends Controller
 
             // Determine current term — request params override automatic detection
             $latestTerm = ResultsStatus::orderBy('year', 'desc')
-                ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
+                ->orderByRaw("CASE result_period WHEN 'third' THEN 3 WHEN 'second' THEN 2 WHEN 'first' THEN 1 ELSE 0 END DESC")
                 ->first();
 
             if ($request->filled('term_id')) {
@@ -717,7 +717,7 @@ class HomeController extends Controller
             // Available terms for switcher
             $availableTerms = ResultsStatus::select('id', 'year', 'result_period')
                 ->orderBy('year', 'desc')
-                ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
+                ->orderByRaw("CASE result_period WHEN 'third' THEN 3 WHEN 'second' THEN 2 WHEN 'first' THEN 1 ELSE 0 END DESC")
                 ->get()
                 ->map(function($term) {
                     $periodLabels = ['first' => 'Term 1', 'second' => 'Term 2', 'third' => 'Term 3'];
@@ -731,7 +731,7 @@ class HomeController extends Controller
 
             // Determine current term — request params override automatic detection
             $latestTerm = ResultsStatus::orderBy('year', 'desc')
-                ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
+                ->orderByRaw("CASE result_period WHEN 'third' THEN 3 WHEN 'second' THEN 2 WHEN 'first' THEN 1 ELSE 0 END DESC")
                 ->first();
 
             if ($request->filled('term_id')) {
@@ -1237,7 +1237,7 @@ class HomeController extends Controller
         $classSubjects = $class->subjects()->with('teacher.user')->orderBy('name')->get();
         
         $currentTerm = ResultsStatus::orderBy('year', 'desc')
-            ->orderByRaw("FIELD(result_period, 'third', 'second', 'first')")
+            ->orderByRaw("CASE result_period WHEN 'third' THEN 3 WHEN 'second' THEN 2 WHEN 'first' THEN 1 ELSE 0 END DESC")
             ->first();
         $currentYear = $currentTerm ? $currentTerm->year : date('Y');
         $currentPeriod = $currentTerm ? $currentTerm->result_period : 'first';
