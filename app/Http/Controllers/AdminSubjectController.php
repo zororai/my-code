@@ -209,6 +209,16 @@ class AdminSubjectController extends Controller
     }
 
     /**
+     * Show the weekly lesson configuration page for all subjects.
+     */
+    public function lessonConfig()
+    {
+        $allSubjects = Subject::with('grades')->orderBy('name')->get();
+
+        return view('backend.subjectsadmin.lesson_config', compact('allSubjects'));
+    }
+
+    /**
      * Update only the weekly lesson configuration for a subject.
      */
     public function updateLessonConfig(Request $request, Subject $subject)
@@ -233,8 +243,8 @@ class AdminSubjectController extends Controller
             'periods_per_week'        => ($single * 1) + ($double * 2) + ($triple * 3) + ($quad * 4),
         ]);
 
-        return redirect()->route('admin.subjects.index', ['#lesson-config'])
-            ->with('success', '"' . $subject->name . '" lesson configuration updated successfully.');
+        return redirect()->route('admin.subjects.lesson-config')
+            ->with('success', '"' . $subject->name . '" updated successfully.');
     }
 
     /**

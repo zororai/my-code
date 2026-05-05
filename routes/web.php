@@ -141,10 +141,11 @@ Route::group(['middleware' => ['auth','role_or_permission:Admin|sidebar-finance|
     Route::get('admin/subjects/assign/template', 'AdminSubjectController@downloadTemplate')->name('admin.subjects.assign.template');
     Route::delete('admin/subjects/unassign/{id}', 'AdminSubjectController@unassign')->name('admin.subjects.unassign');
     Route::post('admin/subjects/bulk-unassign', 'AdminSubjectController@bulkUnassign')->name('admin.subjects.bulkUnassign');
+    Route::get('admin/subjects/lesson-config', 'AdminSubjectController@lessonConfig')->name('admin.subjects.lesson-config');
     Route::get('admin/subjects/{subject}/edit', 'AdminSubjectController@edit')->name('admin.subjects.edit');
     Route::put('admin/subjects/{subject}', 'AdminSubjectController@update')->name('admin.subjects.update');
     Route::delete('admin/subjects/{subject}', 'AdminSubjectController@destroy')->name('admin.subjects.destroy');
-    Route::put('admin/subjects/{subject}/lesson-config', 'AdminSubjectController@updateLessonConfig')->name('admin.subjects.lesson-config');
+    Route::put('admin/subjects/{subject}/lesson-config', 'AdminSubjectController@updateLessonConfig')->name('admin.subjects.update-lesson-config');
     
     // Admin Syllabus Topics Management Routes
     Route::get('admin/syllabus', 'AdminSyllabusController@index')->name('admin.syllabus.index');
