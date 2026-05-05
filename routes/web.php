@@ -380,6 +380,7 @@ Route::group(['middleware' => ['auth','role_or_permission:Admin|sidebar-finance|
     Route::put('/Term/{id}', 'ResultsStatusController@update')->name('results_status.update');
     Route::get('/Term', 'ResultsStatusController@index')->name('results_status.index');
     Route::delete('/results-status/{id}', 'ResultsStatusController@destroy')->name('results_status.destroy');
+    Route::post('/Term/{id}/copy-fees', 'ResultsStatusController@copyFees')->name('results_status.copy_fees');
 
     // Fee Level Groups management
     Route::get('/fee-level-groups', 'FeeLevelGroupController@index')->name('fee-level-groups.index');

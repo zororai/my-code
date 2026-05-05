@@ -296,6 +296,13 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                             </svg>
                                         </button>
+                                        @if($resultStatus->feeStructures && $resultStatus->feeStructures->count() > 0)
+                                        <button type="button" onclick="openCopyFeesModal({{ $resultStatus->id }}, '{{ $resultStatus->year }} {{ ucfirst($resultStatus->result_period) }} Term')" class="inline-flex items-center p-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition-colors" title="Copy Fee Breakdown to Another Term">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                            </svg>
+                                        </button>
+                                        @endif
                                         <a href="{{ route('results_status.edit', $resultStatus->id) }}" class="inline-flex items-center p-2 bg-green-100 hover:bg-green-200 text-green-600 rounded-lg transition-colors" title="Edit">
                                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 448 512">
                                                 <path d="M400 480H48c-26.5 0-48-21.5-48-48V80c0-26.5 21.5-48 48-48h352c26.5 0 48 21.5 48 48v352c0 26.5-21.5 48-48 48zM238.1 177.9L102.4 313.6l-6.3 57.1c-.8 7.6 5.6 14.1 13.3 13.3l57.1-6.3L302.2 242c2.3-2.3 2.3-6.1 0-8.5L246.7 178c-2.5-2.4-6.3-2.4-8.6-.1zM345 165.1L314.9 135c-9.4-9.4-24.6-9.4-33.9 0l-23.1 23.1c-2.3 2.3-2.3 6.1 0 8.5l55.5 55.5c2.3 2.3 6.1 2.3 8.5 0L345 199c9.3-9.3 9.3-24.5 0-33.9z"/>
@@ -418,6 +425,48 @@
         </div>
     </div>
 
+    <!-- Copy Fee Breakdown Modal -->
+    <div id="copyFeesModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex items-center justify-center w-12 h-12 mx-auto bg-blue-100 rounded-full">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <div class="mt-4 text-center">
+                    <h3 class="text-lg font-semibold text-gray-900">Copy Fee Breakdown</h3>
+                    <div class="mt-2 px-4 py-3">
+                        <p class="text-sm text-gray-500">
+                            Copy all fees from <span id="copySourceName" class="font-bold text-gray-900"></span> to:
+                        </p>
+                        <select id="copyTargetSelect" class="mt-3 w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">— Select target term —</option>
+                            @foreach($resultsStatuses as $term)
+                                <option value="{{ $term->id }}" data-source-id="{{ $term->id }}">
+                                    {{ $term->year }} {{ ucfirst($term->result_period) }} Term
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="text-xs text-amber-600 mt-2">This will replace any existing fee structures on the target term.</p>
+                    </div>
+                    <div class="flex gap-3 mt-4 px-4">
+                        <button onclick="closeCopyFeesModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 text-sm font-medium rounded-md hover:bg-gray-300 focus:outline-none">
+                            Cancel
+                        </button>
+                        <button onclick="confirmCopyFees()" class="flex-1 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none">
+                            Copy Fees
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <form id="copy-fees-form" method="POST" class="hidden">
+        @csrf
+        <input type="hidden" name="target_term_id" id="copyTargetInput">
+    </form>
+
     <!-- Delete Confirmation Modal -->
     <div id="deleteModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
@@ -487,6 +536,41 @@
             });
         }
 
+        let copySourceId = null;
+
+        function openCopyFeesModal(sourceId, sourceName) {
+            copySourceId = sourceId;
+            document.getElementById('copySourceName').textContent = sourceName;
+            // Hide the source term from the target dropdown
+            const select = document.getElementById('copyTargetSelect');
+            Array.from(select.options).forEach(function(opt) {
+                opt.hidden = opt.dataset.sourceId == sourceId;
+            });
+            select.value = '';
+            document.getElementById('copyFeesModal').classList.remove('hidden');
+        }
+
+        function closeCopyFeesModal() {
+            document.getElementById('copyFeesModal').classList.add('hidden');
+            copySourceId = null;
+        }
+
+        function confirmCopyFees() {
+            const targetId = document.getElementById('copyTargetSelect').value;
+            if (!targetId) {
+                alert('Please select a target term.');
+                return;
+            }
+            const form = document.getElementById('copy-fees-form');
+            form.action = '/Term/' + copySourceId + '/copy-fees';
+            document.getElementById('copyTargetInput').value = targetId;
+            form.submit();
+        }
+
+        document.getElementById('copyFeesModal').addEventListener('click', function(e) {
+            if (e.target === this) closeCopyFeesModal();
+        });
+
         // Close modal when clicking outside
         document.getElementById('deleteModal').addEventListener('click', function(e) {
             if (e.target === this) {
@@ -505,6 +589,7 @@
             if (e.key === 'Escape') {
                 closeDeleteModal();
                 closeTeacherSessionsModal();
+                closeCopyFeesModal();
             }
         });
     </script>

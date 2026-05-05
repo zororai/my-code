@@ -10,6 +10,9 @@
       "Bash(grep -E \"\\\\.php$\")",
       "Bash(grep -E \"class\\\\s+\\\\w+Controller\" /c/Users/Mazarura/Documents/GitHub/roshs/student_portal_roshs/app/Http/Controllers/*.php)",
       "Bash(grep -r \"getOutstandingAmount\\\\|isOverdue\\\\|getAgingBreakdown\" /c/Users/Mazarura/Documents/GitHub/roshs/student_portal_roshs/app/*.php)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\Mazarura\\Documents\\GitHub\\roshs\\roshs-finance-desktop"
     ]
   }
 }

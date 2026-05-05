@@ -201,6 +201,49 @@ class ResultsStatusController extends Controller
         return redirect()->route('results_status.index')->with('success', 'Term created successfully with fee structures and attendance settings!' . $stockMessage);
     }
 
+    public function copyFees(Request $request, $id)
+    {
+        $request->validate([
+            'target_term_id' => 'required|integer|exists:results_statuses,id|different:' . $id,
+        ]);
+
+        $source = ResultsStatus::with(['feeStructures', 'levelFeeAdjustments'])->findOrFail($id);
+        $target = ResultsStatus::findOrFail($request->target_term_id);
+
+        // Replace target fee structures with source
+        $target->feeStructures()->delete();
+        foreach ($source->feeStructures as $fs) {
+            FeeStructure::create([
+                'results_status_id' => $target->id,
+                'fee_level_group_id' => $fs->fee_level_group_id,
+                'fee_type_id' => $fs->fee_type_id,
+                'student_type' => $fs->student_type,
+                'curriculum_type' => $fs->curriculum_type,
+                'is_for_new_student' => $fs->is_for_new_student,
+                'amount' => $fs->amount,
+            ]);
+        }
+
+        // Replace target level fee adjustments with source
+        $target->levelFeeAdjustments()->delete();
+        foreach ($source->levelFeeAdjustments as $adj) {
+            LevelFeeAdjustment::create([
+                'results_status_id' => $target->id,
+                'class_level' => $adj->class_level,
+                'curriculum_type' => $adj->curriculum_type,
+                'student_type' => $adj->student_type,
+                'adjustment_amount' => $adj->adjustment_amount,
+                'adjustment_type' => $adj->adjustment_type,
+            ]);
+        }
+
+        $sourceName = $source->year . ' ' . ucfirst($source->result_period) . ' Term';
+        $targetName = $target->year . ' ' . ucfirst($target->result_period) . ' Term';
+
+        return redirect()->route('results_status.index')
+            ->with('success', "Fee breakdown copied from {$sourceName} to {$targetName} successfully.");
+    }
+
     public function destroy($id)
     {
         // Find the record by ID
