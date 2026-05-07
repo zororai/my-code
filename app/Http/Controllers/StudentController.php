@@ -653,7 +653,84 @@ class StudentController extends Controller
         $user->password = Hash::make($request->new_password);
         $user->save();
 
-        return redirect()->route('home')->with('success', 'Profile updated successfully!');
+        return redirect()->route('student.add-parent')->with('success', 'Profile updated! Now link a parent to your account.');
+    }
+
+    /**
+     * Show the add-parent form (step after first password change)
+     */
+    public function showAddParentForm()
+    {
+        return view('student.add_parent');
+    }
+
+    /**
+     * Create a parent record for the logged-in student and send SMS registration link.
+     */
+    public function storeParent(Request $request)
+    {
+        $request->validate([
+            'parent_name'  => 'required|string|max:255',
+            'parent_phone' => 'required|string|max:20',
+        ]);
+
+        $student = auth()->user()->student;
+
+        // Build parent record (same pattern as storeWithParents)
+        $registrationToken = Str::random(60);
+        $tempEmail = 'pending_' . time() . '@temp.parent';
+
+        $parentUser = User::create([
+            'name'            => $request->parent_name,
+            'email'           => $tempEmail,
+            'password'        => Hash::make(Str::random(16)),
+            'profile_picture' => 'avatar.png',
+        ]);
+
+        $parent = $parentUser->parent()->create([
+            'gender'                 => 'male',
+            'phone'                  => $request->parent_phone,
+            'current_address'        => 'Pending',
+            'permanent_address'      => 'Pending',
+            'registration_token'     => $registrationToken,
+            'token_expires_at'       => now()->addDays(7),
+            'registration_completed' => false,
+        ]);
+
+        $parentUser->assignRole('Parent');
+
+        if ($student) {
+            $student->parents()->attach($parent->id);
+            if (!$student->parent_id) {
+                $student->parent_id = $parent->id;
+                $student->save();
+            }
+        }
+
+        // Send SMS with registration link
+        $registrationUrl = url('/parent/register/' . $registrationToken);
+        $studentName = auth()->user()->name;
+
+        $messageTemplate = SchoolSetting::get(
+            'sms_student_parent_registration_template',
+            'RSH School: {student_name} registered. Complete parent registration: {url}'
+        );
+        $message = str_replace(
+            ['{student_name}', '{url}'],
+            [$studentName, $registrationUrl],
+            $messageTemplate
+        );
+
+        $smsResult = SmsHelper::sendSms($request->parent_phone, $message);
+
+        $successMsg = 'Parent linked successfully!';
+        if ($smsResult['success']) {
+            $successMsg .= ' An SMS has been sent to ' . $request->parent_phone . ' with login instructions.';
+        } else {
+            $successMsg .= ' Note: SMS could not be delivered to ' . $request->parent_phone . '.';
+        }
+
+        return redirect()->route('home')->with('success', $successMsg);
     }
 
     /**

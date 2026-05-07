@@ -80,6 +80,10 @@ Route::get('/student/change-password', 'StudentController@showChangePasswordForm
 Route::post('/student/update-password', 'StudentController@updatePassword')->name('student.update-password');
 Route::post('/student/update-chair-desk', 'StudentController@updateChairDesk')->name('student.update-chair-desk');
 
+// Student add-parent step (shown after first password change)
+Route::get('/student/add-parent', 'StudentController@showAddParentForm')->name('student.add-parent')->middleware('auth');
+Route::post('/student/add-parent', 'StudentController@storeParent')->name('student.store-parent')->middleware('auth');
+
 // Force password change for users with must_change_password flag
 Route::get('/user/force-change-password', 'HomeController@showForceChangePasswordForm')->name('user.force-change-password')->middleware('auth');
 Route::post('/user/force-change-password', 'HomeController@forceChangePassword')->name('user.force-change-password.update')->middleware('auth');
