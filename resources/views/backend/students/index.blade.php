@@ -212,6 +212,8 @@
 
 @push('scripts')
 <script>
+    const isSuperAdmin = {{ auth()->user()?->is_super_admin ? 'true' : 'false' }};
+
     $(function() {
         // Student data from server
         const students = @json($students);
@@ -285,11 +287,14 @@
                 </form>`;
             }
             
-            html += `<a href="/student/${student.id}" data-url="/student/${student.id}" class="deletestudent inline-flex items-center p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors" title="Delete">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 448 512">
-                    <path d="M432 32H312l-9.4-18.7A24 24 0 0 0 281.1 0H166.8a23.72 23.72 0 0 0-21.4 13.3L136 32H16A16 16 0 0 0 0 48v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16zM53.2 467a48 48 0 0 0 47.9 45h245.8a48 48 0 0 0 47.9-45L416 128H32z"/>
-                </svg>
-            </a></div>`;
+            if (isSuperAdmin) {
+                html += `<a href="/student/${student.id}" data-url="/student/${student.id}" class="deletestudent inline-flex items-center p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors" title="Delete">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 448 512">
+                        <path d="M432 32H312l-9.4-18.7A24 24 0 0 0 281.1 0H166.8a23.72 23.72 0 0 0-21.4 13.3L136 32H16A16 16 0 0 0 0 48v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16zM53.2 467a48 48 0 0 0 47.9 45h245.8a48 48 0 0 0 47.9-45L416 128H32z"/>
+                    </svg>
+                </a>`;
+            }
+            html += `</div>`;
             
             return html;
         }

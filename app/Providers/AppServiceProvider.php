@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Blade;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +24,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        // @superadmin / @endsuperadmin — wraps UI elements only Super Admin should see
+        Blade::if('superadmin', function () {
+            return auth()->check() && auth()->user()->is_super_admin;
+        });
     }
 }

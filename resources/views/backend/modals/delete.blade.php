@@ -1,3 +1,4 @@
+@superadmin
 <div id="deletemodal" class="modal-bg hidden fixed top-0 left-0 right-0 bottom-0 w-full h-full overflow-auto z-50">
     <div class="bg-red-600 relative p-8 max-w-xs mx-auto my-10 sm:my-32 shadow-lg rounded">
         <div id="deletemodelclose" class="absolute top-0 right-0 m-3 text-white cursor-pointer">
@@ -20,3 +21,4 @@
         </div>
     </div>
 </div>
+@endsuperadmin
