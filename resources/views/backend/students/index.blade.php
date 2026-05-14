@@ -58,6 +58,12 @@
                         </div>
                         <h3 class="text-lg font-bold text-gray-900">{{ $class->class_name }}</h3>
                         <p class="text-sm text-gray-500 mt-1">{{ $class->students_count }} {{ Str::plural('student', $class->students_count) }}</p>
+                        <button onclick="event.stopPropagation(); printClassStudents({{ $class->id }}, '{{ addslashes($class->class_name) }}')" class="mt-4 w-full inline-flex items-center justify-center px-3 py-2 bg-gray-100 hover:bg-indigo-100 hover:text-indigo-700 text-gray-600 text-xs font-semibold rounded-lg transition-colors" title="Print student names and emails">
+                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                            </svg>
+                            Print List
+                        </button>
                     </div>
                 </div>
             @empty
@@ -90,6 +96,12 @@
                             </div>
                         </div>
                         <div class="flex items-center space-x-3">
+                            <button id="printClassBtn" onclick="printClassStudents(currentClassId, document.getElementById('selectedClassName').textContent)" class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-lg transition-colors inline-flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                                </svg>
+                                Print List
+                            </button>
                             <button id="bulkDeleteBtn" class="hidden px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors">
                                 <svg class="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 448 512">
                                     <path d="M432 32H312l-9.4-18.7A24 24 0 0 0 281.1 0H166.8a23.72 23.72 0 0 0-21.4 13.3L136 32H16A16 16 0 0 0 0 48v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16zM53.2 467a48 48 0 0 0 47.9 45h245.8a48 48 0 0 0 47.9-45L416 128H32z"/>
@@ -214,10 +226,57 @@
 <script>
     const isSuperAdmin = {{ auth()->user()?->is_super_admin ? 'true' : 'false' }};
 
+    function printClassStudents(classId, className) {
+        const allStudents = @json($students);
+        const classStudents = allStudents.filter(s => s.class_id == classId);
+
+        const rows = classStudents.map((s, i) =>
+            `<tr>
+                <td>${i + 1}</td>
+                <td>${s.user?.name || ''}</td>
+                <td>${s.user?.email || ''}</td>
+                <td>${s.roll_number || ''}</td>
+            </tr>`
+        ).join('');
+
+        const win = window.open('', '_blank', 'width=800,height=600');
+        win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+    <title>${className} - Student List</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 30px; color: #111; }
+        h1 { font-size: 20px; margin-bottom: 4px; }
+        p.meta { font-size: 12px; color: #555; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        thead tr { background: #1d4ed8; color: #fff; }
+        th, td { padding: 10px 14px; border: 1px solid #d1d5db; text-align: left; }
+        tbody tr:nth-child(even) { background: #f3f4f6; }
+        @media print { button { display: none; } }
+    </style>
+</head>
+<body>
+    <h1>${className} — Student List</h1>
+    <p class="meta">Printed on ${new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'long',year:'numeric'})} &nbsp;|&nbsp; ${classStudents.length} student${classStudents.length !== 1 ? 's' : ''}</p>
+    <table>
+        <thead>
+            <tr><th>#</th><th>Name</th><th>Email</th><th>Roll No.</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+    </table>
+    <br>
+    <button onclick="window.print()" style="padding:8px 20px;background:#1d4ed8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;">Print</button>
+</body>
+</html>`);
+        win.document.close();
+        win.focus();
+    }
+
+    let currentClassId = null;
+
     $(function() {
         // Student data from server
         const students = @json($students);
-        let currentClassId = null;
         let currentClassStudents = [];
 
         // Helper function to get parent status HTML
