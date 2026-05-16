@@ -207,6 +207,8 @@ class RolePermissionController extends Controller
             'sidebar-journals',
             'sidebar-receivables',
             'sidebar-payables',
+            'sidebar-settings',
+            'sidebar-settings-theme',
         ];
         
         $permissions = array_unique(array_merge($permissions, $additionalPermissions));

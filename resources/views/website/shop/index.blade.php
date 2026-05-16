@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Shop - Rose of Sharon High School</title>
+    <title>Shop - {{ \App\WebsiteSetting::get('site_name', 'Rose Of Sharon High School') }}</title>
     <link rel="shortcut icon" href="{{ asset('images/favicon.ico') }}" type="image/x-icon">
     <link rel="apple-touch-icon" href="{{ asset('images/apple-touch-icon.png') }}">
     <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}">
@@ -221,7 +221,7 @@
                     <ul class="navbar-nav equal-spacing">
                         <li class="nav-item d-flex align-items-center">
                             <a class="navbar-brand logo-center" href="{{ route('website.index') }}">
-                                <img style="height:80px; width:100px;" src="{{ asset($siteLogo) }}" alt="Rose of Sharon High School">
+                                <img style="height:80px; width:100px;" src="{{ asset($siteLogo) }}" alt="{{ \App\WebsiteSetting::get('site_name', 'Rose Of Sharon High School') }}">
                             </a>
                         </li>
                         <li><a class="nav-link" href="{{ route('website.index') }}">Home</a></li>
@@ -364,7 +364,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-4 col-md-6">
-                    <h3>Rose of Sharon High School</h3>
+                    <h3>{{ \App\WebsiteSetting::get('site_name', 'Rose Of Sharon High School') }}</h3>
                     <p>Quality education for a brighter future.</p>
                 </div>
                 <div class="col-lg-4 col-md-6">
@@ -383,7 +383,7 @@
             </div>
             <div class="row mt-4">
                 <div class="col-12 text-center">
-                    <p>&copy; {{ date('Y') }} Rose of Sharon High School. All Rights Reserved.</p>
+                    <p>&copy; {{ date('Y') }} {{ \App\WebsiteSetting::get('site_name', 'Rose Of Sharon High School') }}. All Rights Reserved.</p>
                 </div>
             </div>
         </div>

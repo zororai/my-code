@@ -42,17 +42,15 @@ class WebsiteSetting extends Model
      */
     public static function set($key, $value)
     {
-        $setting = self::where('key', $key)->first();
-        
-        if ($setting) {
-            $setting->value = $value;
-            $setting->save();
-            Cache::forget("website_setting_{$key}");
-            Cache::forget('website_settings_all');
-            return true;
-        }
+        self::updateOrCreate(
+            ['key' => $key],
+            ['value' => $value]
+        );
 
-        return false;
+        Cache::forget("website_setting_{$key}");
+        Cache::forget('website_settings_all');
+
+        return true;
     }
 
     /**

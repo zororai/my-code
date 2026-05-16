@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Application Submitted - Rose Of Sharon High School</title>
+    <title>Application Submitted - {{ \App\WebsiteSetting::get('site_name', 'Rose Of Sharon High School') }}</title>
     <link href="{{ asset(\App\WebsiteSetting::get('favicon', 'images/favicon.ico')) }}" rel="icon">
     <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}?v={{ time() }}" />
     <link rel="stylesheet" href="{{ asset('css/style.css')}}?v={{ time() }}" />
@@ -28,7 +28,7 @@
                     <ul class="navbar-nav equal-spacing">
                         <li class="nav-item d-flex align-items-center">
                             <a class="navbar-brand logo-center" href="{{ route('website.index') }}">
-                                <img style="height:80px; width:100px;" src="{{ asset($siteLogo) }}" alt="Rose of Sharon High School">
+                                <img style="height:80px; width:100px;" src="{{ asset($siteLogo) }}" alt="{{ \App\WebsiteSetting::get('site_name', 'Rose Of Sharon High School') }}">
                             </a>
                         </li>
                         <li><a class="nav-link" href="{{ route('website.index') }}">Home</a></li>
@@ -132,7 +132,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-12">
-                    <p style="color: white">Copyright &copy;<script>document.write(new Date().getFullYear());</script> All rights reserved | Rose Of Sharon High School</p>
+                    <p style="color: white">Copyright &copy;<script>document.write(new Date().getFullYear());</script> All rights reserved | {{ \App\WebsiteSetting::get('site_name', 'Rose Of Sharon High School') }}</p>
                 </div>
             </div>
         </div>

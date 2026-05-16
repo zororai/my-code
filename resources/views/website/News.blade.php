@@ -11,7 +11,7 @@
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
     <!-- Site Metas -->
-    <title>Rose Of Sharon High School </title>
+    <title>{{ \App\WebsiteSetting::get('site_name', 'Rose Of Sharon High School') }}</title>
     <meta name="keywords" content="">
     <meta name="description" content="">
     <meta name="author" content="">
@@ -168,7 +168,7 @@
                     <ul class="navbar-nav equal-spacing">
                         <li class="nav-item d-flex align-items-center">
                             <a class="navbar-brand logo-center" href="{{ route('website.index') }}">
-                                <img style="height:80px; width:100px;" src="{{ asset($siteLogo) }}" alt="Rose of Sharon High School">
+                                <img style="height:80px; width:100px;" src="{{ asset($siteLogo) }}" alt="{{ \App\WebsiteSetting::get('site_name', 'Rose Of Sharon High School') }}">
                             </a>
                         </li>
                         <li><a class="nav-link" href="{{ route('website.index') }}">Home</a></li>
