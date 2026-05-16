@@ -464,6 +464,12 @@ jQuery(function ($) {
                 for (var i = 0; i < dropdowns.length; i++) {
                     var openDropdown = dropdowns[i];
                     if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
+    </script>
 
 <!-- WhatsApp Floating Button -->
 <div class="whatsapp-float">
@@ -523,7 +529,6 @@ jQuery(function ($) {
     }
 }
 
-/* Mobile responsiveness */
 @media screen and (max-width: 768px) {
     .whatsapp-float {
         width: 50px;
@@ -532,12 +537,10 @@ jQuery(function ($) {
         right: 20px;
         font-size: 25px;
     }
-
     .whatsapp-btn {
         width: 50px;
         height: 50px;
     }
-
     .whatsapp-btn i {
         font-size: 24px;
         line-height: 50px;
@@ -548,12 +551,4 @@ jQuery(function ($) {
 <!-- Add Font Awesome for WhatsApp icon -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-                        openDropdown.classList.remove('show');
-                    }
-                }
-            }
-        }
-    </script>
 </body>
-
-</html>
