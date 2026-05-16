@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <!-- Basic -->
 
@@ -314,82 +314,7 @@
             </div>
           </div> -->
 	<!-- end section -->
-    <!-- Start Footer -->
- <!-- Start Footer -->
-    <footer class="footer-box">
-        <div class="container">
-
-		   <div class="row">
-
-		      <div class="col-xs-12 col-sm-6 col-md-6 col-lg-3">
-			     <div class="footer_blog">
-				    <div class="full margin-bottom_30">
-					 <img style="height:80px;width :100px" src="{{ asset($footerLogo) }}" alt="image">
-					 </div>
-					 <div class="full white_fonts">
-					    <p>Our Vision
-is provide a well-groomed, enriched (in ideas) and productive learner given a firm foundation for tertiary and life challenges.</p>
-					 </div>
-				 </div>
-			  </div>
-
-			  <div class="col-xs-12 col-sm-6 col-md-6 col-lg-3">
-			       <div class="footer_blog footer_menu white_fonts">
-						    <h3>Quick links</h3>
-						    <ul>
-							  <li><a href="#">> Join Us</a></li>
-							  <li><a href="#">> Maintenance</a></li>
-							  <li><a href="#">> Language Packs</a></li>
-							  <li><a href="#">> LearnPress</a></li>
-							  <li><a href="#">> Release Status</a></li>
-							</ul>
-						 </div>
-				 </div>
-
-				 <div class="col-xs-12 col-sm-6 col-md-6 col-lg-3">
-				 <div class="footer_blog full white_fonts">
-						     <h3>Newsletter</h3>
-
-							 <div class="newsletter_form">
-							    <form action="index.html">
-								   <input type="email" placeholder="Your Email" name="#" required />
-								   <button>Submit</button>
-								</form>
-							 </div>
-						 </div>
-					</div>
-
-			  <div class="col-xs-12 col-sm-6 col-md-6 col-lg-3">
-				 <div class="footer_blog full white_fonts">
-						     <h3>Contact us</h3>
-							 <ul class="full">
-			   <li><img src="images/i5.png"><span> 6884 Mt Madecheche Road<br>Zimre Park</span></li>
-							   <li><img src="images/i6.png"><span>infor@roshs.co.zw</span></li>
-							   <li><img src="images/i7.png"><span>+263 772 490 478</span></li>
-							 </ul>
-						 </div>
-					</div>
-
-		   </div>
-
-        </div>
-    </footer>
-    <!-- End Footer -->
-
-
-    <div class="footer_bottom">
-        <div class="container">
-            <div class="row">
-                <div class="col-12">
-                        <p style="color: white">
-                    <!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
-                    Copyright &copy;<script>document.write(new Date().getFullYear());</script> All rights reserved | This website is made with <i class="icon-heart" aria-hidden="true"></i> by <a style="color: white" href="https://lotusdreammaker.co.zw" target="_blank" >Lotusdreammaker</a>
-                    <!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
+    @include('website.partials.footer')
 
     <a href="#" id="scroll-to-top" class="hvr-radial-out"><i class="fa fa-angle-up"></i></a>
 

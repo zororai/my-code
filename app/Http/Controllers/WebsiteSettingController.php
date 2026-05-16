@@ -106,21 +106,25 @@ class WebsiteSettingController extends Controller
             
             if ($setting) {
                 // Handle file uploads for image type
-                if ($setting->type === 'image' && $request->hasFile($key)) {
+                if ($setting->type === 'image') {
+                    if (!$request->hasFile($key)) {
+                        // No file uploaded — keep existing value
+                        continue;
+                    }
                     $file = $request->file($key);
                     $filename = $key . '_' . time() . '.' . $file->getClientOriginalExtension();
-                    
+
                     // Store in public storage
                     $path = $file->storeAs('website', $filename, 'public');
                     $value = 'storage/' . $path;
-                    
+
                     // Delete old file if it exists and is not a default
                     if ($setting->value && !str_starts_with($setting->value, 'images/')) {
                         $oldPath = str_replace('storage/', '', $setting->value);
                         Storage::disk('public')->delete($oldPath);
                     }
                 }
-                
+
                 WebsiteSetting::set($key, $value);
             }
         }

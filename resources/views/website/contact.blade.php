@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <!-- Basic -->
 
@@ -232,82 +232,7 @@
                         <div class="gmap_canvas"><iframe src="https://www.google.com/maps/embed?pb=!1m28!1m12!1m3!1d4515.816915409724!2d31.202839870903507!3d-17.869817353786058!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!4m13!3e0!4m5!1s0x1931bb337929b3d1%3A0xc6894d62e71864aa!2sMutare%20Road%2C%20Harare!3m2!1d-17.8330168!2d31.0855879!4m5!1s0x1931bf68fdd1b0c9%3A0x67b5e2964c70f8d0!2srose%20of%20sharon%20high%20school!3m2!1d-17.8710646!2d31.2099704!5e0!3m2!1sen!2szw!4v1673445468975!5m2!1sen!2szw" width="100%" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
             </div>
 	<!-- end section -->
-    <!-- Start Footer -->
- <!-- Start Footer -->
-    <footer class="footer-box">
-        <div class="container">
-
-		   <div class="row">
-
-		      <div class="col-xs-12 col-sm-6 col-md-6 col-lg-3">
-			     <div class="footer_blog">
-				    <div class="full margin-bottom_30">
-					 <img style="height:80px;width :100px" src="{{ asset($footerLogo) }}" alt="image">
-					 </div>
-					 <div class="full white_fonts">
-					    <p>Our Vision
-is provide a well-groomed, enriched (in ideas) and productive learner given a firm foundation for tertiary and life challenges.</p>
-					 </div>
-				 </div>
-			  </div>
-
-			  <div class="col-xs-12 col-sm-6 col-md-6 col-lg-3">
-			       <div class="footer_blog footer_menu white_fonts">
-						    <h3>Quick links</h3>
-						    <ul>
-							  <li><a href="#">> Join Us</a></li>
-							  <li><a href="#">> Maintenance</a></li>
-							  <li><a href="#">> Language Packs</a></li>
-							  <li><a href="#">> LearnPress</a></li>
-							  <li><a href="#">> Release Status</a></li>
-							</ul>
-						 </div>
-				 </div>
-
-				 <div class="col-xs-12 col-sm-6 col-md-6 col-lg-3">
-				 <div class="footer_blog full white_fonts">
-						     <h3>Newsletter</h3>
-
-							 <div class="newsletter_form">
-							    <form action="index.html">
-								   <input type="email" placeholder="Your Email" name="#" required />
-								   <button>Submit</button>
-								</form>
-							 </div>
-						 </div>
-					</div>
-
-			  <div class="col-xs-12 col-sm-6 col-md-6 col-lg-3">
-				 <div class="footer_blog full white_fonts">
-						     <h3>Contact us</h3>
-							 <ul class="full">
-			   <li><img src="images/i5.png"><span>  6884 Mt Madecheche Road<br>Zimre Park</span></li>
-							   <li><img src="images/i6.png"><span>infor@roshs.co.zw</span></li>
-							   <li><img src="images/i7.png"><span>+263 772 490 478</span></li>
-							 </ul>
-						 </div>
-					</div>
-
-		   </div>
-
-        </div>
-    </footer>
-    <!-- End Footer -->
-
-
-    <div class="footer_bottom">
-        <div class="container">
-            <div class="row">
-                <div class="col-12">
-                       <p style="color: white">
-                    <!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
-                    Copyright &copy;<script>document.write(new Date().getFullYear());</script> All rights reserved | This website is made with <i class="icon-heart" aria-hidden="true"></i> by <a style="color: white" href="https://lotusdreammaker.co.zw" target="_blank" >Lotusdreammaker</a>
-                    <!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
+    @include('website.partials.footer')
 
     <a href="#" id="scroll-to-top" class="hvr-radial-out"><i class="fa fa-angle-up"></i></a>
 

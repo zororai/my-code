@@ -11,7 +11,7 @@
             </a>
             <h1 class="text-2xl font-bold text-gray-800">General Settings</h1>
         </div>
-        <p class="text-gray-600">Configure your website's basic information</p>
+        <p class="text-gray-600">Configure your website's basic information and footer content</p>
     </div>
 
     @if(session('success'))
@@ -24,7 +24,7 @@
         <form action="{{ route('admin.website.update') }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
-            
+
             <div class="p-6 space-y-6">
                 @foreach($settings as $setting)
                 <div class="border-b border-gray-200 pb-6 last:border-0 last:pb-0">
@@ -34,19 +34,34 @@
                     @if($setting->description)
                     <p class="text-xs text-gray-500 mb-2">{{ $setting->description }}</p>
                     @endif
-                    
-                    @if($setting->type === 'textarea')
-                        <textarea 
-                            name="{{ $setting->key }}" 
-                            id="{{ $setting->key }}" 
+
+                    @if($setting->type === 'image')
+                        @if($setting->value)
+                        <div class="mb-3">
+                            <img src="{{ asset($setting->value) }}" alt="{{ $setting->label }}"
+                                 class="h-20 w-auto rounded border border-gray-200 object-contain bg-gray-50 p-1">
+                        </div>
+                        @endif
+                        <input
+                            type="file"
+                            name="{{ $setting->key }}"
+                            id="{{ $setting->key }}"
+                            accept="image/*"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        >
+                        <p class="text-xs text-gray-400 mt-1">Leave empty to keep the current image</p>
+                    @elseif($setting->type === 'textarea')
+                        <textarea
+                            name="{{ $setting->key }}"
+                            id="{{ $setting->key }}"
                             rows="3"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         >{{ $setting->value }}</textarea>
                     @else
-                        <input 
-                            type="{{ $setting->type === 'color' ? 'color' : 'text' }}" 
-                            name="{{ $setting->key }}" 
-                            id="{{ $setting->key }}" 
+                        <input
+                            type="{{ $setting->type === 'color' ? 'color' : 'text' }}"
+                            name="{{ $setting->key }}"
+                            id="{{ $setting->key }}"
                             value="{{ $setting->value }}"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 {{ $setting->type === 'color' ? 'h-12' : '' }}"
                         >
