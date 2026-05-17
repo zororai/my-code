@@ -68,7 +68,8 @@ class WebsiteSettingController extends Controller
     public function homepage()
     {
         $settings = WebsiteSetting::getByGroup('homepage');
-        return view('backend.website-settings.homepage', compact('settings'));
+        $achievements = \App\StudentAchievement::orderBy('order')->orderBy('id')->get();
+        return view('backend.website-settings.homepage', compact('settings', 'achievements'));
     }
 
     /**

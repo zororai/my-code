@@ -45,7 +45,7 @@ class StudentAchievementController extends Controller
             'order' => $maxOrder + 1,
         ]);
 
-        return redirect()->route('admin.achievements.index')->with('success', 'Achievement added successfully!');
+        return redirect()->route('admin.website.homepage')->with('success', 'Slide added successfully!');
     }
 
     public function edit(StudentAchievement $achievement)
@@ -82,7 +82,7 @@ class StudentAchievementController extends Controller
 
         $achievement->update($data);
 
-        return redirect()->route('admin.achievements.index')->with('success', 'Achievement updated successfully!');
+        return redirect()->route('admin.website.homepage')->with('success', 'Slide updated successfully!');
     }
 
     public function destroy(StudentAchievement $achievement)
@@ -92,7 +92,7 @@ class StudentAchievementController extends Controller
         }
         $achievement->delete();
 
-        return redirect()->route('admin.achievements.index')->with('success', 'Achievement deleted successfully!');
+        return redirect()->route('admin.website.homepage')->with('success', 'Slide deleted successfully!');
     }
 
     public function updateOrder(Request $request)
@@ -108,6 +108,6 @@ class StudentAchievementController extends Controller
     {
         $achievement->update(['is_active' => !$achievement->is_active]);
         $status = $achievement->is_active ? 'enabled' : 'disabled';
-        return redirect()->route('admin.achievements.index')->with('success', "Achievement {$status} successfully!");
+        return redirect()->route('admin.website.homepage')->with('success', "Slide {$status} successfully!");
     }
 }
