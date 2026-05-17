@@ -93,6 +93,7 @@ class RolePermissionController extends Controller
                 'sidebar-website-text' => 'Text Content',
                 'sidebar-website-landing-page' => 'Landing Page Settings',
                 'sidebar-banner' => 'Banner',
+                'sidebar-achievements' => 'Student Achievements',
                 'sidebar-newsletter' => 'Newsletter',
                 'sidebar-events' => 'Events'
             ],
@@ -182,6 +183,7 @@ class RolePermissionController extends Controller
             'sidebar-website-text',
             'sidebar-website-landing-page',
             'sidebar-banner',
+            'sidebar-achievements',
             'sidebar-newsletter',
             'sidebar-events',
             'sidebar-payment-verification',
@@ -391,6 +393,7 @@ class RolePermissionController extends Controller
                 'sidebar-website-images' => 'Images & Logo',
                 'sidebar-website-text' => 'Text Content',
                 'sidebar-banner' => 'Banner',
+                'sidebar-achievements' => 'Student Achievements',
                 'sidebar-newsletter' => 'Newsletter',
                 'sidebar-events' => 'Events'
             ],
@@ -471,7 +474,7 @@ class RolePermissionController extends Controller
             'sidebar-teacher-schemes', 'sidebar-syllabus-topics', 'view-teacher-device-info',
             'sidebar-timetable', 'sidebar-webcam', 'sidebar-website', 'sidebar-website-dashboard',
             'sidebar-website-general', 'sidebar-website-colors', 'sidebar-website-images', 'sidebar-website-text',
-            'sidebar-banner', 'sidebar-newsletter', 'sidebar-events', 'sidebar-finance', 'sidebar-student-payments',
+            'sidebar-banner', 'sidebar-achievements', 'sidebar-newsletter', 'sidebar-events', 'sidebar-finance', 'sidebar-student-payments',
             'sidebar-payment-verification', 'sidebar-parents-arrears', 'sidebar-school-income', 'sidebar-school-expenses',
             'sidebar-inventory', 'sidebar-pos', 'sidebar-student-groceries', 'sidebar-grocery-arrears',
             'sidebar-grocery-stock', 'sidebar-financial-statements', 'sidebar-payroll', 'sidebar-cashbook', 
