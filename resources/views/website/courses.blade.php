@@ -217,7 +217,7 @@
 	      <div class="row">
 		      <div class="col-12">
 			     <div class="full">
-				     <h3>Our Subject</h3>
+				     <h3>{{ \App\WebsiteSetting::get('courses_banner_title', 'Our Subjects') }}</h3>
 				 </div>
 			  </div>
 		  </div>
@@ -227,103 +227,71 @@
 	<!-- end section -->
 
 	<!-- section -->
+    @php
+        $oLevelSubjects = array_filter(array_map(‘trim’, explode("\n", \App\WebsiteSetting::get(‘courses_olevel_subjects’, "Geography\nMathematics\nBiology\nEnglish Language\nPrinciples of Accounts\nChemistry\nFamily and Religious Studies\nHeritage Studies\nCommerce\nComputers\nShona\nPhysical Science"))));
+        $aLevelCol1 = array_filter(array_map(‘trim’, explode("\n", \App\WebsiteSetting::get(‘courses_alevel_subjects_col1’, "History\nEconomic History\nShona Literature\nShona Language\nPure Mathematics\nBiology\nPhysics\nChemistry"))));
+        $aLevelCol2 = array_filter(array_map(‘trim’, explode("\n", \App\WebsiteSetting::get(‘courses_alevel_subjects_col2’, "Geography\nEconomics\nBusiness Studies\nAccounting\nStatistics\nSociology\nLiterature in English\nHeritage Studies\nFamily and Religious Studies"))));
+        $oLevelImage = \App\WebsiteSetting::get(‘courses_olevel_image’, ‘images/img-7.png’);
+    @endphp
     <div class="section margin-top_50">
         <div class="container">
             <div class="row">
                 <div class="col-md-6 layout_padding_2">
                     <div class="full">
-                        <div class="heading_main text_align_left">
-
-
-                        </div>
-
                     <h2 class="section-title-underline mb-5">
-                        <span>'O' Level subject</span>
+                        <span>{{ \App\WebsiteSetting::get(‘courses_olevel_title’, "’O’ Level Subjects") }}</span>
                     </h2>
-
-
                     <ol class="ul-check primary list-unstyled">
-
-                        <li>Geography</li>
-                        <li>Mathematics</li>
-                        <li>Biology</li>
-                        <li>English Language</li>
-                        <li>Principles of Accounts</li>
-                        <li>Chemistry</li>
-                        <li>Family and Religious Studies</li>
-                        <li>Heritage Studies</li>
-                        <li>Commerce</li>
-                        <li>Computers</li>
-                        <li>Shona</li>
-                         <li>Physical Science</li>
-
-
+                        @foreach($oLevelSubjects as $subject)
+                        <li>{{ $subject }}</li>
+                        @endforeach
                     </ol>
-
-
-
                     </div>
                 </div>
 				<div class="col-md-6">
                     <div class="full">
-                        <img style="height:400px; border-radius: 20px;" src="images/img-7.png" alt="#" />
+                        <img style="height:400px; border-radius: 20px;" src="{{ asset($oLevelImage) }}" alt="#" />
                     </div>
                 </div>
             </div>
-                     <div class="row">
-                    <div class="col-lg-6 order-1 order-lg-2 mb-4 mb-lg-0">
-
-                        <ol class="ul-check primary list-unstyled" style="margin-top: 100px">
-                                <li>Geography</li>
-                                <li>Economics</li>
-                                <li>Business Studies</li>
-                                <li>Accounting</li>
-                                  <li>Statistics</li>
-                                    <li>Sociology</li>
-  <li>Literature in English</li>
-    <li>Heritage Studies</li>
-      <li>Family and Religious Studies</li>
-
-
-                            </ol>
-                    </div>
-                    <div class="col-lg-5 mr-auto align-self-center order-2 order-lg-1">
-                        <h2 class="section-title-underline mb-5">
-                            <span>'A' Level subjects</span>
-                        </h2>
-
-                        <ol class="ul-check primary list-unstyled">
-                                <li>History</li>
-                                <li>Economic History</li>
-                                <li>Shone Literature</li>
-                                <li>Shona Language</li>
-                                  <li>Pure MAthematics</li>
-                                    <li>Biology</li>
-                                      <li>Physics</li>
-                                <li>Chemistry</li>
-                            </ol>
-                    </div>
+            <div class="row">
+                <div class="col-lg-6 order-1 order-lg-2 mb-4 mb-lg-0">
+                    <ol class="ul-check primary list-unstyled" style="margin-top: 100px">
+                        @foreach($aLevelCol2 as $subject)
+                        <li>{{ $subject }}</li>
+                        @endforeach
+                    </ol>
                 </div>
+                <div class="col-lg-5 mr-auto align-self-center order-2 order-lg-1">
+                    <h2 class="section-title-underline mb-5">
+                        <span>{{ \App\WebsiteSetting::get(‘courses_alevel_title’, "’A’ Level Subjects") }}</span>
+                    </h2>
+                    <ol class="ul-check primary list-unstyled">
+                        @foreach($aLevelCol1 as $subject)
+                        <li>{{ $subject }}</li>
+                        @endforeach
+                    </ol>
+                </div>
+            </div>
         </div>
     </div>
 	<!-- end section -->
 	<!-- section -->
-
-        <div class="container pt-5 mb-5">
-            <div class="row">
-              <div class="col-lg-4">
+    <div class="container pt-5 mb-5">
+        <div class="row">
+            <div class="col-lg-4">
                 <h2 class="section-title-underline">
-                  <span>Academy History</span>
+                    <span>{{ \App\WebsiteSetting::get(‘courses_history_title’, ‘Academy History’) }}</span>
                 </h2>
-              </div>
-              <div class="col-lg-4">
-                <p>Then Rose Of Sharon High School will know that he is the Lord God who lives in Zion his holy mountain, Rose of Sharon High School will remain forever and foreign mountains will drip with sweet wine and the hills will flow with milk,</p>
-              </div>
-              <div class="col-lg-4">
-                <p> water will fill the streambeds of Rose of Sharon High School and the fountain will burst forth from the Lord’s temple watering the arid valleys of Rose of Sharon High School. Rose of Sharon High School will remain forever and Rose of Sharon High School will endure through all future generations</p>
-              </div>
             </div>
-          </div> -->
+            <div class="col-lg-4">
+                <p>{{ \App\WebsiteSetting::get(‘courses_history_text_1’, ‘’) }}</p>
+            </div>
+            <div class="col-lg-4">
+                <p>{{ \App\WebsiteSetting::get(‘courses_history_text_2’, ‘’) }}</p>
+            </div>
+        </div>
+    </div>
 	<!-- end section -->
     @include('website.partials.footer')
 
