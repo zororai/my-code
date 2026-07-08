@@ -9,7 +9,9 @@
       "Bash(\"/c/Users/Mazarura/.config/herd/bin/php.bat\" artisan:*)",
       "Bash(grep -E \"\\\\.php$\")",
       "Bash(grep -E \"class\\\\s+\\\\w+Controller\" /c/Users/Mazarura/Documents/GitHub/roshs/student_portal_roshs/app/Http/Controllers/*.php)",
-      "Bash(grep -r \"getOutstandingAmount\\\\|isOverdue\\\\|getAgingBreakdown\" /c/Users/Mazarura/Documents/GitHub/roshs/student_portal_roshs/app/*.php)"
+      "Bash(grep -r \"getOutstandingAmount\\\\|isOverdue\\\\|getAgingBreakdown\" /c/Users/Mazarura/Documents/GitHub/roshs/student_portal_roshs/app/*.php)",
+      "Bash(git log *)",
+      "Bash(git add *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Mazarura\\Documents\\GitHub\\roshs\\roshs-finance-desktop"
