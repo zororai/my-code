@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Helpers\SmsHelper;
 use App\SchoolSetting;
+use App\ResultsStatus;
 use Illuminate\Support\Facades\Storage;
 
 class TeacherController extends Controller
@@ -936,6 +937,11 @@ class TeacherController extends Controller
                 ->withErrors(['papers' => 'Paper names must be unique. Please ensure each paper has a different name.']);
         }
 
+        // Determine the currently active term/year, same lookup used on the dashboard
+        $currentTerm = ResultsStatus::orderBy('year', 'desc')
+            ->orderByRaw("CASE result_period WHEN 'third' THEN 3 WHEN 'second' THEN 2 WHEN 'first' THEN 1 ELSE 0 END DESC")
+            ->first();
+
         // Create the assessment
         $assessment = \App\Assessment::create([
             'teacher_id' => $teacher->id,
@@ -947,7 +953,9 @@ class TeacherController extends Controller
             'date' => $request->date,
             'due_date' => $request->due_date,
             'exam' => $request->exam ? trim($request->exam) : null,
-            'papers' => $request->papers
+            'papers' => $request->papers,
+            'academic_year' => $currentTerm ? $currentTerm->year : date('Y'),
+            'term' => $currentTerm ? $currentTerm->result_period : 'first',
         ]);
 
         return redirect()->route('teacher.assessment.list', $request->class_id)
