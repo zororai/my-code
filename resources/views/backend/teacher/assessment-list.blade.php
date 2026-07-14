@@ -259,6 +259,24 @@
                     @csrf
                     <input type="hidden" name="class_id" value="{{ $class->id }}">
 
+                    <!-- Current Term/Year Info -->
+                    <div class="mb-5 flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <div>
+                            <span class="text-xs text-blue-500 font-medium uppercase tracking-wide">Auto-assigned term</span>
+                            <p class="text-sm font-semibold text-blue-800">
+                                @if($currentTerm)
+                                    Term {{ $currentTerm->result_period === 'first' ? '1' : ($currentTerm->result_period === 'second' ? '2' : '3') }}
+                                    &nbsp;&bull;&nbsp; {{ $currentTerm->year }}
+                                @else
+                                    No active term found — go to <a href="{{ route('results_status.index') }}" class="underline">Term settings</a> to create one.
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+
                     <!-- Validation Errors -->
                     @if($errors->any())
                         <div class="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert">

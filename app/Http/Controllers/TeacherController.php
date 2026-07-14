@@ -810,7 +810,11 @@ class TeacherController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('backend.teacher.assessment-list', compact('class', 'assessments', 'markedAssessments', 'assessmentComments', 'teacher'));
+        $currentTerm = ResultsStatus::orderBy('year', 'desc')
+            ->orderByRaw("CASE result_period WHEN 'third' THEN 3 WHEN 'second' THEN 2 WHEN 'first' THEN 1 ELSE 0 END DESC")
+            ->first();
+
+        return view('backend.teacher.assessment-list', compact('class', 'assessments', 'markedAssessments', 'assessmentComments', 'teacher', 'currentTerm'));
     }
 
     /**
