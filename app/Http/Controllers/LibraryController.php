@@ -559,9 +559,35 @@ class LibraryController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('category')) {
+            if ($request->category === '__uncategorized__') {
+                $query->where(function ($q) {
+                    $q->whereNull('category')->orWhere('category', '');
+                });
+            } else {
+                $query->where('category', $request->category);
+            }
+        }
+
         $books = $query->orderBy('created_at', 'desc')->paginate(20);
 
-        return view('backend.admin.library.books.index', compact('books'));
+        $categories = Book::whereNotNull('category')->where('category', '!=', '')
+            ->distinct()->orderBy('category')->pluck('category');
+
+        return view('backend.admin.library.books.index', compact('books', 'categories'));
+    }
+
+    /**
+     * Show book counts grouped by subject (category).
+     */
+    public function booksBySubject()
+    {
+        $subjects = Book::selectRaw("COALESCE(NULLIF(category, ''), 'Uncategorized') as subject, COUNT(*) as total")
+            ->groupBy('subject')
+            ->orderByDesc('total')
+            ->get();
+
+        return view('backend.admin.library.books.by-subject', compact('subjects'));
     }
 
     /**

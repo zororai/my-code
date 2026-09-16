@@ -63,12 +63,12 @@
                             placeholder="Enter ISBN">
                     </div>
 
-                    <!-- Category -->
+                    <!-- Subject -->
                     <div>
-                        <label for="category" class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                        <label for="category" class="block text-sm font-medium text-gray-700 mb-2">Subject</label>
                         <input type="text" name="category" id="category" value="{{ old('category') }}"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="e.g., Fiction, Science, History">
+                            placeholder="e.g., Mathematics, English, Computer Science">
                     </div>
 
                     <!-- Add Copies with ISBN -->

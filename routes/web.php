@@ -763,6 +763,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::patch('/admin/library/{id}/correct-to-returned', 'LibraryController@correctToReturned')->name('admin.library.correct-to-returned');
         Route::delete('/admin/library/{id}', 'LibraryController@destroy')->name('admin.library.destroy');
         Route::get('/admin/library/books', 'LibraryController@books')->name('admin.library.books');
+        Route::get('/admin/library/books/by-subject', 'LibraryController@booksBySubject')->name('admin.library.books.by-subject');
         Route::get('/admin/library/books/create', 'LibraryController@createBook')->name('admin.library.books.create');
         Route::post('/admin/library/books', 'LibraryController@storeBook')->name('admin.library.books.store');
         Route::get('/admin/library/books/{id}', 'LibraryController@showBook')->name('admin.library.books.show');

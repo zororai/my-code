@@ -14,6 +14,12 @@
                 </svg>
                 Back to Records
             </a>
+            <a href="{{ route('admin.library.books.by-subject') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+                </svg>
+                Group by Subject
+            </a>
             <a href="{{ route('admin.library.books.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -62,6 +68,15 @@
                     <option value="lost" {{ request('status') == 'lost' ? 'selected' : '' }}>Lost</option>
                 </select>
             </div>
+            <div class="w-48">
+                <select name="category" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Subjects</option>
+                    @foreach($categories as $category)
+                        <option value="{{ $category }}" {{ request('category') == $category ? 'selected' : '' }}>{{ $category }}</option>
+                    @endforeach
+                    <option value="__uncategorized__" {{ request('category') == '__uncategorized__' ? 'selected' : '' }}>Uncategorized</option>
+                </select>
+            </div>
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg">
                 Filter
             </button>
@@ -95,6 +110,9 @@
                         </span>
                         <span class="px-2 py-1 text-xs rounded-full {{ $book->status_badge }}">
                             {{ ucfirst($book->status) }}
+                        </span>
+                        <span class="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-800">
+                            {{ $book->category ?: 'Uncategorized' }}
                         </span>
                     </div>
 

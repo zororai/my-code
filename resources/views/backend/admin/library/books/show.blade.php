@@ -95,7 +95,7 @@
                             <p class="text-gray-900 font-mono">{{ $book->isbn ?? 'Not specified' }}</p>
                         </div>
                         <div>
-                            <label class="text-sm font-medium text-gray-600">Category</label>
+                            <label class="text-sm font-medium text-gray-600">Subject</label>
                             <p class="text-gray-900">{{ $book->category ?? 'Not specified' }}</p>
                         </div>
                         <div>
