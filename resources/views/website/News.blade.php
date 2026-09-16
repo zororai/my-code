@@ -224,7 +224,7 @@
 						@endif
 						<div class="card-body">
 							<h3 class="card-title"><b>{{ $newsletter->title }}</b></h3>
-							<p class="card-text">{{ Str::limit($newsletter->content, 150) }}</p>
+							<p class="card-text" style="white-space: pre-line;">{{ Str::limit($newsletter->content, 150) }}</p>
 							<a href="{{ route('website.newsletter.show', $newsletter->id) }}" class="btn btn-primary">Read More</a>
 						</div>
 					</div>

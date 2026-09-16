@@ -88,7 +88,7 @@
 		
 		<div class="card">
 			<div class="card-body">
-				<p class="card-text">{{ $newsletter->content }}</p>
+				<p class="card-text" style="white-space: pre-line;">{{ $newsletter->content }}</p>
 				
 				@if($newsletter->image_path)
 					<img src="{{ asset('storage/' . $newsletter->image_path) }}" alt="Newsletter Image" class="img-fluid rounded mb-4">
