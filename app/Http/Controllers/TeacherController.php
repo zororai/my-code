@@ -24,9 +24,38 @@ class TeacherController extends Controller
      */
     public function index()
     {
-        $teachers = Teacher::with('user')->latest()->paginate(10);
+        $status = request('status', 'active');
+        $query = Teacher::with('user');
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+        $teachers = $query->latest()->paginate(10)->appends(['status' => $status]);
 
-        return view('backend.teachers.index', compact('teachers'));
+        return view('backend.teachers.index', compact('teachers', 'status'));
+    }
+
+    /**
+     * Update a teacher's status (Active / Resigned / Inactive).
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:active,resigned,inactive',
+        ]);
+
+        $teacher = Teacher::findOrFail($id);
+        $teacher->status = $request->status;
+        $teacher->save();
+
+        if ($teacher->user) {
+            $teacher->user->update(['is_active' => $request->status === 'active']);
+        }
+
+        return back()->with('success', 'Teacher status updated.');
     }
 
     /**
@@ -539,7 +568,8 @@ class TeacherController extends Controller
             'phone'             => 'required|string|max:255',
             'dateofbirth'       => 'nullable|date',
             'current_address'   => 'nullable|string|max:255',
-            'permanent_address' => 'nullable|string|max:255'
+            'permanent_address' => 'nullable|string|max:255',
+            'status'            => 'nullable|in:active,resigned,inactive'
         ]);
 
         $user = User::findOrFail($teacher->user_id);
@@ -557,16 +587,21 @@ class TeacherController extends Controller
             'profile_picture'   => $profile
         ]);
 
+        $status = $request->status ?? $teacher->status;
+
         $user->teacher()->update([
             'gender'            => $request->gender,
             'phone'             => $request->phone,
             'dateofbirth'       => $request->dateofbirth,
             'current_address'   => $request->current_address,
             'permanent_address' => $request->permanent_address,
+            'status'            => $status,
             'is_class_teacher'  => $request->has('is_class_teacher'),
             'is_hod'            => $request->has('is_hod'),
             'is_sport_director' => $request->has('is_sport_director'),
         ]);
+
+        $user->update(['is_active' => $status === 'active']);
 
         return redirect()->route('teacher.index');
     }

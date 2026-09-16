@@ -167,11 +167,13 @@ Route::group(['middleware' => ['auth','role_or_permission:Admin|sidebar-finance|
     
     Route::resource('subject', 'SubjectController');
     Route::resource('teacher', 'TeacherController')->except(['show']);
+    Route::post('teacher/{id}/status', 'TeacherController@updateStatus')->name('teacher.status');
     Route::get('teacher/sessions', 'TeacherController@sessions')->name('teacher.sessions');
     Route::post('teacher/update-sessions', 'TeacherController@updateSessions')->name('teacher.update-sessions');
     Route::resource('parents', 'ParentsController');
     Route::post('parents/{id}/force-password-reset', 'ParentsController@forcePasswordReset')->name('parents.force-password-reset');
     Route::resource('student', 'StudentController')->except(['create', 'store']);
+    Route::post('student/{id}/transfer', 'StudentController@toggleTransfer')->name('student.transfer');
     Route::post('student/{id}/force-password-reset', 'StudentController@forcePasswordReset')->name('student.force-password-reset');
     Route::post('students/bulk-update-to-existing', 'StudentController@bulkUpdateToExisting')->name('students.bulk-update-to-existing');
     Route::post('students/bulk-delete', 'StudentController@bulkDelete')->name('students.bulk-delete');

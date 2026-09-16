@@ -66,9 +66,40 @@ class StudentController extends Controller
     public function index()
     {
         $classes = Grade::withCount('students')->orderBy('class_numeric')->get();
-        $students = Student::with(['class', 'user', 'parents'])->latest()->get();
 
-        return view('backend.students.index', compact('classes', 'students'));
+        $status = request('status', 'active');
+        $query = Student::with(['class', 'user', 'parents']);
+        if ($status === 'active') {
+            $query->where('is_transferred', false);
+        } elseif ($status === 'transferred') {
+            $query->where('is_transferred', true);
+        }
+        $students = $query->latest()->get();
+
+        return view('backend.students.index', compact('classes', 'students', 'status'));
+    }
+
+    /**
+     * Toggle a student's transferred status.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function toggleTransfer($id)
+    {
+        $student = Student::findOrFail($id);
+        $student->is_transferred = !$student->is_transferred;
+        $student->save();
+
+        if ($student->user) {
+            $student->user->update(['is_active' => !$student->is_transferred]);
+        }
+
+        $message = $student->is_transferred
+            ? 'Student marked as transferred.'
+            : 'Student reactivated.';
+
+        return back()->with('success', $message);
     }
 
     public function downloadIdCard($id)

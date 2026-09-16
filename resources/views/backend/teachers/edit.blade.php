@@ -231,6 +231,23 @@
                             </div>
                         </div>
 
+                        <!-- Employment Status Card -->
+                        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                            <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                                <h3 class="text-lg font-semibold text-gray-900">Employment Status</h3>
+                                <p class="mt-1 text-sm text-gray-500">Resigned or inactive staff are hidden from the active teacher list and cannot log in</p>
+                            </div>
+                            <div class="px-6 py-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                                <select name="status" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200">
+                                    <option value="active" @selected($teacher->status === 'active')>Active</option>
+                                    <option value="resigned" @selected($teacher->status === 'resigned')>Resigned</option>
+                                    <option value="inactive" @selected($teacher->status === 'inactive')>Inactive</option>
+                                </select>
+                                @error('status')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+
                         <!-- Submit Buttons -->
                         <div class="flex items-center justify-end space-x-4 pt-4">
                             <a href="{{ route('teacher.index') }}" class="px-6 py-3 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors duration-200">

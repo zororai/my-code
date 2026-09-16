@@ -20,6 +20,16 @@
             </div>
         </div>
 
+        <!-- Status Filter Tabs -->
+        <div class="mb-6">
+            <nav class="flex space-x-2">
+                <a href="{{ route('teacher.index', ['status' => 'active']) }}" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors {{ $status === 'active' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50' }}">Active</a>
+                <a href="{{ route('teacher.index', ['status' => 'resigned']) }}" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors {{ $status === 'resigned' ? 'bg-amber-600 text-white' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50' }}">Resigned</a>
+                <a href="{{ route('teacher.index', ['status' => 'inactive']) }}" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors {{ $status === 'inactive' ? 'bg-gray-600 text-white' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50' }}">Inactive</a>
+                <a href="{{ route('teacher.index', ['status' => 'all']) }}" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors {{ $status === 'all' ? 'bg-gray-800 text-white' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50' }}">All</a>
+            </nav>
+        </div>
+
         <!-- Search Bar -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
             <div class="relative">
@@ -63,6 +73,9 @@
                             </th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Session
+                            </th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                Status
                             </th>
                             <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Profile Status
@@ -155,6 +168,23 @@
                                         </span>
                                     @endif
                                 </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    @php
+                                        $statusColors = [
+                                            'active' => 'bg-green-100 text-green-800',
+                                            'resigned' => 'bg-amber-100 text-amber-800',
+                                            'inactive' => 'bg-gray-200 text-gray-700',
+                                        ];
+                                    @endphp
+                                    <form action="{{ route('teacher.status', $teacher->id) }}" method="POST" class="inline-flex items-center">
+                                        @csrf
+                                        <select name="status" onchange="this.form.submit()" class="text-xs font-medium rounded-full border-0 py-1 pl-3 pr-7 focus:ring-2 focus:ring-blue-500 {{ $statusColors[$teacher->status] ?? $statusColors['active'] }}">
+                                            <option value="active" @selected($teacher->status === 'active')>Active</option>
+                                            <option value="resigned" @selected($teacher->status === 'resigned')>Resigned</option>
+                                            <option value="inactive" @selected($teacher->status === 'inactive')>Inactive</option>
+                                        </select>
+                                    </form>
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     @php
                                         $hasUpdated = $teacher->user->updated_at->gt($teacher->user->created_at->addMinutes(5));
@@ -202,7 +232,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-6 py-12 text-center">
+                                <td colspan="9" class="px-6 py-12 text-center">
                                     <div class="flex flex-col items-center justify-center">
                                         <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>

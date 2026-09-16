@@ -29,6 +29,15 @@
             </div>
         </div>
 
+        <!-- Status Filter Tabs -->
+        <div class="mb-6">
+            <nav class="flex space-x-2">
+                <a href="{{ route('student.index', ['status' => 'active']) }}" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors {{ $status === 'active' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50' }}">Active</a>
+                <a href="{{ route('student.index', ['status' => 'transferred']) }}" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors {{ $status === 'transferred' ? 'bg-orange-600 text-white' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50' }}">Transferred</a>
+                <a href="{{ route('student.index', ['status' => 'all']) }}" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors {{ $status === 'all' ? 'bg-gray-800 text-white' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50' }}">All</a>
+            </nav>
+        </div>
+
         <!-- Search Bar -->
         <div class="mb-6">
             <div class="relative">
@@ -333,8 +342,16 @@
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 448 512">
                         <path d="M400 480H48c-26.5 0-48-21.5-48-48V80c0-26.5 21.5-48 48-48h352c26.5 0 48 21.5 48 48v352c0 26.5-21.5 48-48 48zM238.1 177.9L102.4 313.6l-6.3 57.1c-.8 7.6 5.6 14.1 13.3 13.3l57.1-6.3L302.2 242c2.3-2.3 2.3-6.1 0-8.5L246.7 178c-2.5-2.4-6.3-2.4-8.6-.1zM345 165.1L314.9 135c-9.4-9.4-24.6-9.4-33.9 0l-23.1 23.1c-2.3 2.3-2.3 6.1 0 8.5l55.5 55.5c2.3 2.3 6.1 2.3 8.5 0L345 199c9.3-9.3 9.3-24.5 0-33.9z"/>
                     </svg>
-                </a>`;
-            
+                </a>
+                <form action="/student/${student.id}/transfer" method="POST" class="inline" onsubmit="return confirm('${student.is_transferred ? 'Reactivate this student?' : 'Mark this student as transferred? They will be removed from the active list and their login will be disabled.'}');">
+                    @csrf
+                    <button type="submit" class="inline-flex items-center p-2 ${student.is_transferred ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-600' : 'bg-orange-100 hover:bg-orange-200 text-orange-600'} rounded-lg transition-colors" title="${student.is_transferred ? 'Reactivate' : 'Mark as Transferred'}">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 512 512">
+                            <path d="M470.6 273.4c12.5-12.5 12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L364.7 224 96 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l268.7 0-99.4 99.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l160-160z"/>
+                        </svg>
+                    </button>
+                </form>`;
+
             if (showResendSms && pendingParents > 0) {
                 html += `<form action="/student/${student.id}/resend-parent-sms" method="POST" class="inline">
                     @csrf
@@ -382,6 +399,7 @@
                     <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
                         ${student.roll_number || ''}
                     </span>
+                    ${student.is_transferred ? '<span class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-800">Transferred</span>' : ''}
                 </td>`;
             
             if (showClass) {
