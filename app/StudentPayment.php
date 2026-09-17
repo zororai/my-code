@@ -18,6 +18,7 @@ class StudentPayment extends Model
         'payment_date',
         'payment_method',
         'reference_number',
+        'receipt_number',
         'notes'
     ];
 

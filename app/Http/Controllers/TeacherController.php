@@ -736,7 +736,7 @@ class TeacherController extends Controller
         $subjects = $teacher->subjects()->get();
 
         // Assessment types to track
-        $assessmentTypes = ['Quiz', 'Test', 'In Class Test', 'Monthly Test', 'Assignment', 'Exercise', 'Project', 'Fort Night', 'Exam', 'Vacation Exam', 'National Exam'];
+        $assessmentTypes = ['Quiz', 'Test', 'In Class Test', 'Monthly Test', 'Assignment', 'Midterm', 'Exercise', 'Project', 'Fort Night', 'Exam', 'Vacation Exam', 'National Exam'];
 
         // Build performance data per subject
         $subjectPerformance = [];
@@ -907,7 +907,7 @@ class TeacherController extends Controller
             'subject_id' => 'required|exists:subjects,id',
             'syllabus_topic_id' => 'nullable|exists:syllabus_topics,id',
             'topic' => 'required|string|min:3|max:255',
-            'assessment_type' => 'required|string|in:Quiz,Test,In Class Test,Monthly Test,Assignment,Exercise,Project,Fort Night,Exam,Vacation Exam,National Exam',
+            'assessment_type' => 'required|string|in:Quiz,Test,In Class Test,Monthly Test,Assignment,Midterm,Exercise,Project,Fort Night,Exam,Vacation Exam,National Exam',
             'date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:date',
             'exam' => 'nullable|string|max:255',
@@ -1322,7 +1322,7 @@ class TeacherController extends Controller
             'subject_id' => 'required|exists:subjects,id',
             'syllabus_topic_id' => 'nullable|exists:syllabus_topics,id',
             'topic' => 'required|string|min:3|max:255',
-            'assessment_type' => 'required|string|in:Quiz,Test,In Class Test,Monthly Test,Assignment,Exercise,Project,Fort Night,Exam,Vacation Exam,National Exam',
+            'assessment_type' => 'required|string|in:Quiz,Test,In Class Test,Monthly Test,Assignment,Midterm,Exercise,Project,Fort Night,Exam,Vacation Exam,National Exam',
             'date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:date',
             'exam' => 'nullable|string|max:255',

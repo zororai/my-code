@@ -32,7 +32,7 @@
     <!-- Filter -->
     <form method="GET" action="{{ route('finance.student-payments') }}" id="filterForm">
         <div class="bg-white rounded-lg shadow p-4 mb-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Filter by Class</label>
                     <select name="class_id" id="filterClass" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -53,6 +53,12 @@
                         <option value="unpaid" {{ request('status') == 'unpaid' ? 'selected' : '' }}>Unpaid</option>
                     </select>
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Search by Receipt Number</label>
+                    <input type="text" name="receipt_search" value="{{ request('receipt_search') }}"
+                           placeholder="e.g. 1242"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
             </div>
             <div class="mt-3 flex justify-end gap-2">
                 <a href="{{ route('finance.student-payments') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm">
@@ -64,6 +70,43 @@
             </div>
         </div>
     </form>
+
+    @if($receiptSearchResults->isNotEmpty())
+    <!-- Receipt Number Search Results -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6 border-2 border-blue-200">
+        <h3 class="text-sm font-semibold text-gray-700 mb-3">Receipt Search Results ({{ $receiptSearchResults->count() }})</h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Date</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receipt No.</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference No.</th>
+                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    @foreach($receiptSearchResults as $payment)
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-2 text-sm text-gray-900">{{ $payment->student->user->name ?? 'Unknown' }}</td>
+                            <td class="px-4 py-2 text-sm text-gray-600">{{ $payment->student->class->class_name ?? 'N/A' }}</td>
+                            <td class="px-4 py-2 text-sm text-gray-600">{{ $payment->payment_date->format('M d, Y') }}</td>
+                            <td class="px-4 py-2 text-sm font-semibold text-gray-900">{{ $payment->receipt_number ?? '-' }}</td>
+                            <td class="px-4 py-2 text-sm text-gray-600">{{ $payment->reference_number ?? '-' }}</td>
+                            <td class="px-4 py-2 text-sm font-semibold text-green-600 text-right">${{ number_format($payment->amount_paid, 2) }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @elseif(request()->filled('receipt_search'))
+    <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-4 mb-6 text-sm">
+        No payments found matching receipt number "{{ request('receipt_search') }}".
+    </div>
+    @endif
 
     <!-- Students Table -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
@@ -165,6 +208,7 @@
                                     'method' => $p->payment_method,
                                     'fee_type' => $feeType,
                                     'reference' => $p->reference_number,
+                                    'receipt_number' => $p->receipt_number,
                                     'term' => ($p->resultsStatus->result_period ?? '') . ' ' . ($p->resultsStatus->year ?? '')
                                 ];
                             })->values()->toArray();
@@ -263,6 +307,7 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fee Type</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receipt No.</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                                 <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Receipt</th>
                             </tr>
@@ -272,7 +317,7 @@
                         </tbody>
                         <tfoot class="bg-gray-100">
                             <tr>
-                                <td colspan="6" class="px-4 py-3 text-right text-sm font-bold text-gray-700">Total Paid:</td>
+                                <td colspan="7" class="px-4 py-3 text-right text-sm font-bold text-gray-700">Total Paid:</td>
                                 <td class="px-4 py-3 text-right text-sm font-bold text-green-600" id="history_total_paid">$0.00</td>
                             </tr>
                         </tfoot>
@@ -522,6 +567,14 @@
                                 <option value="Card">Card</option>
                             </select>
                         </div>
+                    </div>
+
+                        <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Receipt Number</label>
+                        <input type="text" name="receipt_number" id="receipt_number"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               placeholder="Enter the number from the receipt book" required>
+                        <p class="text-xs text-gray-500 mt-1">The number written on the physical/manual receipt issued to the payer.</p>
                     </div>
 
                         <div class="mb-4">
@@ -1342,6 +1395,11 @@
             const paymentMethod = document.querySelector('select[name="payment_method"]').value;
             if (!paymentMethod) {
                 showAlert('Please select a payment method before proceeding.');
+                return;
+            }
+            const receiptNumber = document.getElementById('receipt_number').value.trim();
+            if (!receiptNumber) {
+                showAlert('Please enter the receipt number from the receipt book before proceeding.');
                 return;
             }
         }

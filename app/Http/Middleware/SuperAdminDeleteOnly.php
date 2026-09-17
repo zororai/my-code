@@ -17,7 +17,12 @@ class SuperAdminDeleteOnly
                 && in_array(optional($request->route())->getName(), $libraryBookDeleteRoutes)
                 && ($user->hasRole('Admin') || $user->can('sidebar-library-records'));
 
-            if (!$isSuperAdmin && !$canDeleteLibraryBooks) {
+            $teacherOwnedDeleteRoutes = ['teacher.assessment.delete'];
+            $canDeleteOwnAssessment = $user
+                && in_array(optional($request->route())->getName(), $teacherOwnedDeleteRoutes)
+                && $user->hasRole('Teacher');
+
+            if (!$isSuperAdmin && !$canDeleteLibraryBooks && !$canDeleteOwnAssessment) {
                 if ($request->expectsJson()) {
                     return response()->json(['error' => 'Only the Super Admin can delete records.'], 403);
                 }

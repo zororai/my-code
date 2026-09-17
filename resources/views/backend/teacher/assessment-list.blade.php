@@ -79,6 +79,7 @@
                                         @if($assessment->assessment_type == 'Quiz') bg-blue-100 text-blue-800
                                         @elseif($assessment->assessment_type == 'Test') bg-purple-100 text-purple-800
                                         @elseif($assessment->assessment_type == 'Assignment') bg-green-100 text-green-800
+                                        @elseif($assessment->assessment_type == 'Midterm') bg-amber-100 text-amber-800
                                         @else bg-gray-100 text-gray-800
                                         @endif">
                                         {{ $assessment->assessment_type ?? 'N/A' }}
@@ -196,6 +197,7 @@
                                             @if($assessment->assessment_type == 'Quiz') bg-blue-100 text-blue-800
                                             @elseif($assessment->assessment_type == 'Test') bg-purple-100 text-purple-800
                                             @elseif($assessment->assessment_type == 'Assignment') bg-green-100 text-green-800
+                                            @elseif($assessment->assessment_type == 'Midterm') bg-amber-100 text-amber-800
                                             @else bg-gray-100 text-gray-800
                                             @endif">
                                             {{ $assessment->assessment_type ?? 'N/A' }}
@@ -327,6 +329,7 @@
                                 <option value="In Class Test">In Class Test</option>
                                 <option value="Monthly Test">Monthly Test</option>
                                 <option value="Assignment">Assignment</option>
+                                <option value="Midterm">Midterm</option>
                                 <option value="Exercise">Exercise</option>
                                 <option value="Project">Project</option>
                                 <option value="Fort Night">Fort Night</option>

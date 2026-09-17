@@ -68,7 +68,7 @@
                         <select name="assessment_type" required
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none bg-white">
                             <option value="">Assessment Type</option>
-                            @foreach(['Quiz', 'Test', 'In Class Test', 'Monthly Test', 'Assignment', 'Exercise', 'Project', 'Fort Night', 'Exam', 'Vacation Exam', 'National Exam'] as $type)
+                            @foreach(['Quiz', 'Test', 'In Class Test', 'Monthly Test', 'Assignment', 'Midterm', 'Exercise', 'Project', 'Fort Night', 'Exam', 'Vacation Exam', 'National Exam'] as $type)
                                 <option value="{{ $type }}" {{ old('assessment_type', $assessment->assessment_type) == $type ? 'selected' : '' }}>
                                     {{ $type }}
                                 </option>

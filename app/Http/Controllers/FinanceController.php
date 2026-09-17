@@ -117,8 +117,17 @@ class FinanceController extends Controller
             ->where('status', 'pending')
             ->orderBy('created_at', 'desc')
             ->get();
-        
-        return view('backend.finance.student-payments', compact('students', 'currentTerm', 'classes', 'allTerms', 'allStudentsForModal', 'pendingVerifications'));
+
+        // Search payments by manual receipt number (for audit/reconciliation)
+        $receiptSearchResults = collect();
+        if ($request->filled('receipt_search')) {
+            $receiptSearchResults = StudentPayment::where('receipt_number', 'like', '%' . $request->receipt_search . '%')
+                ->with(['student.user', 'student.class'])
+                ->orderBy('payment_date', 'desc')
+                ->get();
+        }
+
+        return view('backend.finance.student-payments', compact('students', 'currentTerm', 'classes', 'allTerms', 'allStudentsForModal', 'pendingVerifications', 'receiptSearchResults'));
     }
 
     public function storePayment(Request $request)
@@ -131,6 +140,7 @@ class FinanceController extends Controller
             'payment_date' => 'required|date',
             'payment_method' => 'required|string',
             'reference_number' => 'nullable|string',
+            'receipt_number' => 'required|string|max:255',
             'notes' => 'nullable|string',
         ]);
 
@@ -172,6 +182,7 @@ class FinanceController extends Controller
                 'payment_date' => $validated['payment_date'],
                 'payment_method' => $validated['payment_method'],
                 'reference_number' => $validated['reference_number'],
+                'receipt_number' => $validated['receipt_number'],
                 'notes' => $validated['notes'],
             ];
             
@@ -257,6 +268,7 @@ class FinanceController extends Controller
                     'date' => $validated['payment_date'],
                     'method' => $validated['payment_method'],
                     'reference' => $validated['reference_number'],
+                    'receipt_number' => $lastPayment->receipt_number,
                     'term' => $currentTerm ? ucfirst($currentTerm->result_period) . ' ' . $currentTerm->year : '',
                     'fees' => implode(', ', $feesPaidFor),
                 ]
