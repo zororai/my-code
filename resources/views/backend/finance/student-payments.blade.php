@@ -876,6 +876,7 @@
                         <td class="px-4 py-3 text-sm text-gray-900 font-medium">${payment.fee_type}</td>
                         <td class="px-4 py-3 text-sm text-gray-600">${payment.method || '-'}</td>
                         <td class="px-4 py-3 text-sm text-gray-600">${payment.reference || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">${payment.receipt_number || '-'}</td>
                         <td class="px-4 py-3 text-sm text-green-600 font-semibold text-right">$${parseFloat(payment.amount).toFixed(2)}</td>
                         <td class="px-4 py-3 text-sm">
                             <button onclick="printReceipt(${index})" class="text-blue-600 hover:text-blue-800" title="Print Receipt">
@@ -1071,8 +1072,12 @@
                             <span class="label">Reference No.</span>
                             <span class="value">${payment.reference || '-'}</span>
                         </div>
+                        <div class="row">
+                            <span class="label">Receipt No.</span>
+                            <span class="value">${payment.receipt_number || '-'}</span>
+                        </div>
                     </div>
-                    
+
                     <div class="amount-section">
                         <div class="amount-label">Amount Paid</div>
                         <div class="amount-value">$${parseFloat(payment.amount).toFixed(2)}</div>
@@ -1649,6 +1654,10 @@
                             <span class="label">Reference No.</span>
                             <span class="value">${receipt.reference || '-'}</span>
                         </div>
+                        <div class="row">
+                            <span class="label">Receipt No.</span>
+                            <span class="value">${receipt.receipt_number || '-'}</span>
+                        </div>
                     </div>
                     <div class="amount-section">
                         <div class="amount-label">Amount Paid</div>
@@ -1801,6 +1810,7 @@
         addLine('');
         addLine('Payment Method: ' + (receipt.method || '-'));
         addLine('Reference: ' + (receipt.reference || '-'));
+        addLine('Receipt No: ' + (receipt.receipt_number || '-'));
         addLine('');
         addLine('================================');
         
